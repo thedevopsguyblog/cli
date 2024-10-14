@@ -1,9 +1,9 @@
-export const commonVars: Record<string, string> = {
+export const commonVars: Record<string, string|any> = {
   REGION: 'ap-southeast-2', //TODO: deploy to an array of regions
   ACCOUNT: '518239905283',
-  APP_CODE: %APP_CODE%,
+  APP_CODE: "%APP_CODE%",
   DESCRIPTION:'',
-  PRODUCTNAME: %APP_NAME%,
+  PRODUCTNAME: "%APP_NAME%",
   // Git Repo
   // OWNER: 'mySub-SaaS',
   OWNER: 'thedevopsguyblog',
@@ -12,5 +12,5 @@ export const commonVars: Record<string, string> = {
   GHSECRET: 'github-oath-token',
   PERSONALGHSECRET: '/personal/github-access-token',
   // Domain name
-  DOMAINNAME: %DOMAINNAME%,
+  DOMAINNAME: "%DOMAINNAME%",
 };
