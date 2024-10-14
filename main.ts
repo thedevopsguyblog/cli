@@ -1,7 +1,7 @@
-import chalk from "npm:chalk";
-import * as emoji from 'npm:node-emoji'
+import chalk from "npm:chalk@5.3.0";
 import { parseArgs } from "@std/cli/parse-args";
-import { copyDir, copyFile, IcliOptions, logger, npmInstall, showHelp, successExitCli } from "./helpers.ts";
+import type { IcliOptions } from "./helpers.ts";
+import { copyDir, copyFile,  logger, showHelp, successExitCli } from "./helpers.ts";
 
 /**
  * Spawn a subprocess to run the NPX AWS CDK commands - "npx aws-cdk init app --generate-only --language typescript",
@@ -117,13 +117,17 @@ async function templater(
   AppName: string,
   DomainName: string,
 ) {
-  logger(`📂 Copying "API" config...`, chalk.green);
+  logger(`Copying "API" config...`, chalk.green, 'file');
 
   const srcPath = `${ASSETS_DIR}/template/`;
-  const folders = Deno.readDirSync(srcPath);
+  const folders = Deno.readDirSync(`${Deno.cwd()}/assets/template`);
+  
+  for (const f in folders) {
+    console.log(f)
+  }
 
   for (const dir of folders) {
-    console.info(JSON.stringify(dir.name));
+    logger(`Copying ${dir.name} from the template`, chalk.green, 'file');
     const fullSrcPath = `${srcPath}${dir.name}`;
     const fullDestPath = `${workspace}/${dir.name}`;
 
@@ -145,9 +149,9 @@ async function templater(
     logger(`/config/${entry.name}`, chalk.grey);
 
     const replacedFile = file
-      .replace(/%APP_CODE%/g, `"${AppCode}"`)
-      .replace(/%APP_NAME%/g, `"${AppName}"`)
-      .replace(/%DOMAINNAME%/g, `"${DomainName}"`);
+      .replace("/%APP_CODE%/g", `"${AppCode}"`)
+      .replace("/%APP_NAME%/g", `"${AppName}"`)
+      .replace("/%DOMAINNAME%/g", `"${DomainName}"`);
     await Deno.writeTextFile(filePath, replacedFile);
   }
 }
@@ -256,9 +260,9 @@ async function init(options: IcliOptions) {
     logger(`Error creating the Workspace:\n ${error}`,chalk.bgRed, 'warning');
   }
 
-  await initCdk(workspace);
+  // await initCdk(workspace);
   // await initNextJs(workspace);
-  // templater(workspace, options.appCode, options.appName, options.domainName);
+  templater(workspace, options.appCode, options.appName, options.domainName);
   // await updatePkgJson(workspace, options.appCode, options.appName, options.domainName);
   // await npmInstall(`${workspace}/frontend`);
   // await npmInstall(`${workspace}`);

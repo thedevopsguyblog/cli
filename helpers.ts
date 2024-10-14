@@ -1,6 +1,6 @@
-import type { ChalkInstance } from "npm:chalk";
-import chalk from "npm:chalk";
-import * as emoji from 'npm:node-emoji'
+import type { ChalkInstance } from "npm:chalk@5.3.0";
+import chalk from "npm:chalk@5.3.0";
+import * as emoji from 'npm:node-emoji@2.1.3'
 
 export interface IcliOptions {
   appName: string;
