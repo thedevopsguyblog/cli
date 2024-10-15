@@ -3,9 +3,18 @@
   "version": "0.1.0",
   "exports": "./main.ts",
   "tasks": {
-    "dev": "deno run --allow-env --allow-write --allow-read --allow-run --watch main.ts -a progressBar -c PBS -d pb.com.au"
+    "dev": "deno run --allow-env --allow-write --allow-read --allow-run --watch main.ts -a progressBar -c PBS -d pb.com.au",
+    "test": "deno test --allow-env --allow-write --allow-read --allow-run -- -a progressBar -c PBS -d pb.com.au"
   },
   "license": "GPL-3.0",
+  "test": {
+    "include": [
+      "main.test.ts"
+    ],
+    "exclude": [
+      "assets/**/*.ts"
+    ]
+  },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
     "@std/cli": "jsr:@std/cli@^1.0.6",
