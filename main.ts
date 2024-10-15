@@ -7,7 +7,7 @@ import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall } from 
  * Spawn a subprocess to run the NPX AWS CDK commands - "npx aws-cdk init app --generate-only --language typescript",
  */
 
-export const ASSETS_DIR = `${Deno.cwd()}/assets`;
+export const ASSETS_DIR:string = `${Deno.cwd()}/assets`;
 
 async function initCdk(workspace: string) {
   
