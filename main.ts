@@ -1,13 +1,13 @@
 import chalk from "npm:chalk@5.3.0";
 import { parseArgs } from "@std/cli/parse-args";
 import type { IcliOptions } from "./helpers.ts";
-import { copyDir, copyFile,  logger, showHelp, successExitCli } from "./helpers.ts";
+import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall } from "./helpers.ts";
 
 /**
  * Spawn a subprocess to run the NPX AWS CDK commands - "npx aws-cdk init app --generate-only --language typescript",
  */
 
-const ASSETS_DIR = `${Deno.cwd()}/assets`;
+export const ASSETS_DIR = `${Deno.cwd()}/assets`;
 
 async function initCdk(workspace: string) {
   
@@ -108,37 +108,44 @@ async function initNextJs(workspace: string) {
 }
 
 /**
- * Recursive copy directories and files from "api" and "config"
- * Find and replace placeholders in the files
+ * @description Recursive copy directories and files from the assets dir, then find and replace placeholders in the files
+ * @param workspace The workspace path
+ * @param AppCode The AppCode
+ * @param AppName The AppName
+ * @param DomainName The DomainName
+ * 
  */
-async function templater(
+export async function orgainseAssets(
   workspace: string,
   AppCode: string,
   AppName: string,
   DomainName: string,
 ) {
-  logger(`Copying "API" config...`, chalk.green, 'file');
-
-  const srcPath = `${ASSETS_DIR}/template/`;
-  const folders = Deno.readDirSync(`${Deno.cwd()}/assets/template`);
   
-  for (const f in folders) {
-    console.log(f)
-  }
+  const templateDir = `${ASSETS_DIR}/template/`;
+  const folders = [...Deno.readDirSync(templateDir)]
 
   for (const dir of folders) {
-    logger(`Copying ${dir.name} from the template`, chalk.green, 'file');
-    const fullSrcPath = `${srcPath}${dir.name}`;
+    
+    const fullSrcPath = `${templateDir}${dir.name}`;
     const fullDestPath = `${workspace}/${dir.name}`;
 
     const stat = Deno.statSync(fullSrcPath);
-
+    
     if (stat.isDirectory) {
       await copyDir(fullSrcPath, fullDestPath);
     } else if (stat.isFile) {
       await copyFile(fullSrcPath, fullDestPath);
     }
   }
+}
+
+export async function templater(
+  workspace: string,
+  AppCode: string,
+  AppName: string,
+  DomainName: string
+){
 
   // Find and replace placeholders in the files
   const config = Deno.readDirSync(`${workspace}/config`);
@@ -260,15 +267,15 @@ async function init(options: IcliOptions) {
     logger(`Error creating the Workspace:\n ${error}`,chalk.bgRed, 'warning');
   }
 
-  // await initCdk(workspace);
-  // await initNextJs(workspace);
-  templater(workspace, options.appCode, options.appName, options.domainName);
-  // await updatePkgJson(workspace, options.appCode, options.appName, options.domainName);
-  // await npmInstall(`${workspace}/frontend`);
-  // await npmInstall(`${workspace}`);
+  await initCdk(workspace);
+  await initNextJs(workspace);
+  await orgainseAssets(workspace, options.appCode, options.appName, options.domainName)
+  await templater(workspace, options.appCode, options.appName, options.domainName);
+  await updatePkgJson(workspace, options.appCode, options.appName, options.domainName);
+  await npmInstall(`${workspace}/frontend`)
+  await npmInstall(`${workspace}`);
 
-
-
+  // TODO: we always return a success - most of the time it's true but I need a failExitCli()
   successExitCli();
 }
 
