@@ -1,7 +1,7 @@
 {
   "name": "@work-u/saas-cli",
   "version": "0.1.5",
-  "exports": "./wus",
+  "exports": "./main.ts",
   "tasks": {
     "dev": "deno run --allow-env --allow-write --allow-read --allow-run --watch main.ts -a progressBar -c PBS -d pb.com.au",
     "test": "deno test --allow-env --allow-write --allow-read --allow-run -- -a progressBar -c PBS -d pb.com.au",
