@@ -1,6 +1,6 @@
 {
   "name": "@work-u/saas-cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "exports": "./main.ts",
   "tasks": {
     "dev": "deno run --allow-env --allow-write --allow-read --allow-run --watch main.ts -a progressBar -c PBS -d pb.com.au",
@@ -10,8 +10,7 @@
   "license": "GPL-3.0",
   "publish": {
     "exclude": [
-      "!wus",
-      "assets/*"
+      "!wus"
     ] 
   },
   "test": {

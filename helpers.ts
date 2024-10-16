@@ -129,9 +129,14 @@ Options:
   -h, --help          Show this help message and exit
 
 Arguments:
-  -a, --APP_NAME         The name of the application, eg: 'My SaaS App'
+  -a, --APP_NAME         The name of the application, eg: 'My-SaaS-App'
   -c, --APP_CODE         The code for the application, eg: 'MSA'
   -d, --DOMAINNAME       The domain name for the application, eg: 'my-saas-app.com'
+
+Examples:
+    
+  This will bootstrap a new SaaS application with the name 'My-SaaS-App', code 'MSA' and domain 'my-saas-app.com'
+    "deno run jsr:@work-u/saas-cli -a My-SaaS-App -c MSA -d my-saas-app.com"
 `);
 }
 
