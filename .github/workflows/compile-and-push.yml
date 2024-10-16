@@ -1,7 +1,7 @@
 name: Compile and Push to JSR
 permissions:
   id-token: write
-  
+
 on:
   push:
     branches:
@@ -27,4 +27,4 @@ jobs:
       run : deno run compile
 
     - name: Push to JSR
-      run: deno publish
+      run: deno publish --allow-dirty
