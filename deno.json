@@ -8,6 +8,10 @@
     "compile": "deno compile --allow-env --allow-write --allow-read --allow-run --output wus main.ts"
   },
   "license": "GPL-3.0",
+  "publish": {
+    
+    "exclude": ["!wus"] 
+  },
   "test": {
     "include": [
       "main.test.ts"
