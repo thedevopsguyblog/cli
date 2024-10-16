@@ -1,31 +1,19 @@
-name: Compile and Push to JSR
-permissions:
-  id-token: write
-  contents: read
-
+name: Compile and 
 on:
   push:
     branches:
       - main
 
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-    - name: Setup Deno v2.x
-      uses: denoland/setup-deno@v2
-      with: 
-        deno-version: v2.x
-
-    - name: Install dependencies
-      run: deno install
-
-    - name: Compile
-      run : deno run compile
-
-    - name: Push to JSR
-      run: deno publish --allow-dirty
+      - name: Publish package
+        run: npx jsr publish
