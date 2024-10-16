@@ -9,8 +9,10 @@
   },
   "license": "GPL-3.0",
   "publish": {
-    
-    "exclude": ["!wus"] 
+    "exclude": [
+      "!wus",
+      "assets/*"
+    ] 
   },
   "test": {
     "include": [
