@@ -119,9 +119,11 @@ export const logger = (
   console.info(`${emojiIcon} ${colorMsg}`);
 };
 
-export function showHelp() {
+export function showHelp():void {
   console.log(`
-Usage: npx wuss APP_NAME APP_CODE DOMAINNAME
+  🙋🏾‍♂️ Welcome to the "Work-U SaaS" or "wus" CLI
+
+  Usage: wuss APP_NAME APP_CODE DOMAINNAME
 
 Options:
   -h, --help          Show this help message and exit
