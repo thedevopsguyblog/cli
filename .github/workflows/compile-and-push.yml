@@ -1,6 +1,7 @@
 name: Compile and Push to JSR
 permissions:
   id-token: write
+  contents: read
 
 on:
   push:
@@ -27,6 +28,4 @@ jobs:
       run : deno run compile
 
     - name: Push to JSR
-      run: deno publish --allow-dirty --token ${{ secrets.DENO_AUTH_TOKEN }}
-      env:
-        DENO_AUTH_TOKEN: ${{ secrets.DENO_AUTH_TOKEN }}
+      run: deno publish --allow-dirty
