@@ -1,0 +1,28 @@
+name: Compile and Push to JSR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Setup Deno v2.x
+      uses: denoland/setup-deno@v2
+      with: 
+        deno-version: v2.x
+
+    - name: Install dependencies
+      run: deno install
+
+    - name: Compile
+      run : deno run compile
+
+    - name: Push to JSR
+      run: deno publish
