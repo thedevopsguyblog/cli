@@ -1,5 +1,7 @@
 name: Compile and Push to JSR
-
+permissions:
+  id-token: write
+  
 on:
   push:
     branches:
