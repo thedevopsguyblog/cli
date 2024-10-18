@@ -9,11 +9,16 @@ import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall } from 
 
 export const ASSETS_DIR:string = `${Deno.cwd()}/assets`;
 
-async function initCdk(workspace: string) {
-  
-  const cdkBin = async () => {
-    await Deno.removeSync(`${workspace}/bin`, { recursive: true });
+async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
+
+  const cdkBin = async ():Promise<{initBinSetup:boolean}> => {
+    Deno.removeSync(`${workspace}/bin`, { recursive: true });
     await copyDir(`${ASSETS_DIR}/bin`, `${workspace}/bin`);
+    if (Deno.statSync(`${workspace}/bin`).isDirectory) {
+      logger(`CDK almost done...`, undefined , 'file_folder');
+      return {initBinSetup: true}
+    }
+    return {initBinSetup: false}
   }
 
   // define command used to create the subprocess
@@ -30,24 +35,26 @@ async function initCdk(workspace: string) {
   });
 
   // create subprocess and collect output
-  const { code, stdout, stderr, success, signal } = await command.output();
-
-  
-  console.assert(code === 0, "Failed to run command");
-  // console.info(new TextDecoder().decode(stdout));
-  console.info(new TextDecoder().decode(stderr));
+  const { code, stderr, success, stdout } = await command.output();
 
   if (success) {
-    await cdkBin();
-    logger(`AWS CDK initialized`,chalk.green, 'cloud')
+    const {initBinSetup} = await cdkBin();
+    if (initBinSetup) {
+      return {initCdkSuccess: true}
+    } else {
+      logger(`Error setting up the bin directory.`, chalk.bgRed, 'red_circle');
+      return {initCdkSuccess: false}
+    }
   } else {
-    logger(`Error initializing AWS CDK`, chalk.bgRed, 'warning')
+    logger(`Error initializing the CDK.`, chalk.red, 'construction')
+    logger(`${new TextDecoder().decode(stderr)}`, chalk.bgRed, 'red_circle');
+    return {initCdkSuccess: false}
   }
 
 }
 
-async function initNextJs(workspace: string) {
-  logger(`Working on the Frontend...`, chalk.green);
+async function initNextJs(workspace: string):Promise<{initNextJsSuccess: Boolean}> {
+  logger(`Working on the Frontend...`, undefined, 'building_construction');
 
   const files = [{
     src: `${ASSETS_DIR}/template/userCtx.tsx`,
@@ -91,19 +98,13 @@ async function initNextJs(workspace: string) {
 
   const { code, stdout, stderr } = await command.output();
 
-  console.assert(
-    code === 0,
-    logger(
-      "🚨 \nFailed to Initialize the Next.js app. \n Is the target directory empty?",
-      chalk.bgRed,
-    ),
-  );
-  // console.info(new TextDecoder().decode(stdout));
-  console.info(new TextDecoder().decode(stderr));
-
   if (code == 0) {
-    logger(`📂 Frontend created`, chalk.green);
+    logger(`Frontend created`, chalk.green, 'file_cabinet');
     await initAuxFile();
+    return {initNextJsSuccess: true}
+  } else {
+    logger(`Error initializing Next.js`, chalk.bgRed, 'alert');
+    return {initNextJsSuccess: false}
   }
 }
 
@@ -267,16 +268,25 @@ async function init(options: IcliOptions) {
     logger(`Error creating the Workspace:\n ${error}`,chalk.bgRed, 'warning');
   }
 
-  await initCdk(workspace);
-  await initNextJs(workspace);
-  await orgainseAssets(workspace, options.appCode, options.appName, options.domainName)
-  await templater(workspace, options.appCode, options.appName, options.domainName);
-  await updatePkgJson(workspace, options.appCode, options.appName, options.domainName);
-  await npmInstall(`${workspace}/frontend`)
-  await npmInstall(`${workspace}`);
+  const {initCdkSuccess} = await initCdk(workspace);
+  if (initCdkSuccess){
+    logger(`CDK initialized successfully`, chalk.green, 'next_track_button');
+    if ((await initNextJs(workspace)).initNextJsSuccess === true) {
+      await orgainseAssets(workspace, options.appCode, options.appName, options.domainName)
+      await templater(workspace, options.appCode, options.appName, options.domainName);
+      await updatePkgJson(workspace, options.appCode, options.appName, options.domainName);
+      await npmInstall(`${workspace}/frontend`)
+      await npmInstall(`${workspace}`);
+      successExitCli();
+    } else {
+      logger(`Error initializing the Next.js app\n Exiting Script.`, chalk.bgRed, 'construction');
+      Deno.exit(1);
+    }
+  } else {
+    // TODO: I need a failExitCli()
+    Deno.exit(1);
+  }
 
-  // TODO: we always return a success - most of the time it's true but I need a failExitCli()
-  successExitCli();
 }
 
 const cliArgs = parseArgs(Deno.args, {
