@@ -52,7 +52,8 @@ This CLI was built using Deno 2.
 ### CLI TODO
 
 - 🏗️ Optimise the CLI to handle spawning processes.
-- 🏗️ WIP on UI and options.
+- 🏗️ Support bootstrapping SPA.
+- 🏗️ WIP on CLI UI.
 
 ## Example
 
