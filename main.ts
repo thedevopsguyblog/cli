@@ -300,7 +300,7 @@ if (cliArgs.help) {
 }
 
 if (!cliArgs.APP_NAME || !cliArgs.APP_CODE || !cliArgs.DOMAINNAME) {
-  logger("Please provide all the required arguments", chalk.red, 'question');
+  logger("Please provide all the required arguments", chalk.yellow, 'warning');
   showHelp();
   Deno.exit(1);
 }

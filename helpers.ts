@@ -120,10 +120,10 @@ export const logger = (
 };
 
 export function showHelp():void {
-  console.log(`
-  🙋🏾‍♂️ Welcome to the "Work-U SaaS" or "wus" CLI
+  console.info(`
+  Welcome to the "Work-U SaaS" or "wus" CLI
 
-  Usage: wuss APP_NAME APP_CODE DOMAINNAME
+  Usage: wus [ARGUMENTS]
 
 Options:
   -h, --help          Show this help message and exit
@@ -137,6 +137,8 @@ Examples:
     
   This will bootstrap a new SaaS application with the name 'My-SaaS-App', code 'MSA' and domain 'my-saas-app.com'
     "deno run jsr:@work-u/saas-cli -a My-SaaS-App -c MSA -d my-saas-app.com"
+
+Source Code: https://github.com/thedevopsguyblog/cli
 `);
 }
 
