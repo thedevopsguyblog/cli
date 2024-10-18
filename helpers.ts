@@ -108,6 +108,9 @@ export async function copyDir(src: string, dest: string) {
 
 /**
  * When incorrect values are passed we'll display the help message.
+ * @param msg
+ * @param color
+ * @param emojiName https://unpkg.com/emojilib@4.0.0/dist/emoji-en-US.json
  */
 export const logger = (
   msg: string,
