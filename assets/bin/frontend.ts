@@ -15,6 +15,7 @@ console.log('Frontend:',envVars.RESOURCE_PREFIX)
 
 const PREFIX = envVars.RESOURCE_PREFIX
 const AC = envVars.APP_CODE
+const FQDN = envVars.DOMAIN_NAME
 const SRC_FILE = './frontend/amplifyconfiguration.json'
 /*
 type keyName = `${string}-${string}`
@@ -83,9 +84,9 @@ async function writeExports(){
         throw new Error(errorMessage);
     }
 
-    const authConfig = parsedData[`${PREFIX}%APPCODE%-Auth`]
-    const apiConfig = parsedData[`${PREFIX}%APPCODE%-API`]
-    const bucketConfig = parsedData[`${PREFIX}%APPCODE%-Bucket`]
+    const authConfig = parsedData[`${PREFIX}${AC}-Auth`]
+    const apiConfig = parsedData[`${PREFIX}${AC}-API`]
+    const bucketConfig = parsedData[`${PREFIX}${AC}-Bucket`]
 
     // Check if the required data is present
     if (!authConfig || !bucketConfig){
@@ -115,8 +116,8 @@ async function writeExports(){
                           'profile',
                           'openid',
                         ],
-                        redirectSignIn: PREFIX === 'P' ? [`https://www.%DOMAINNAME%/`] : [ 'http://localhost:3000/', `https://testing.%DOMAINNAME%/`, `https://dev.%DOMAINNAME%/`],
-                        redirectSignOut: PREFIX === 'P' ? [`https://www.%DOMAINNAME%/`] : [ 'http://localhost:3000/', `https://testing.%DOMAINNAME%/`, `https://dev.%DOMAINNAME%/`],
+                        redirectSignIn: PREFIX === 'P' ? [`https://www.${FQDN}/`] : [ 'http://localhost:3000/', `https://testing.${FQDN}/`, `https://dev.${FQDN}/`],
+                        redirectSignOut: PREFIX === 'P' ? [`https://www.${FQDN}/`] : [ 'http://localhost:3000/', `https://testing.${FQDN}/`, `https://dev.${FQDN}/`],
                         responseType: "code",
                     }
                 }
