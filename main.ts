@@ -1,7 +1,7 @@
 import chalk from "npm:chalk@5.3.0";
 import { parseArgs } from "@std/cli/parse-args";
 import type { IcliOptions } from "./helpers.ts";
-import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall } from "./helpers.ts";
+import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall, cleanDir } from "./helpers.ts";
 
 /**
  * Spawn a subprocess to run the NPX AWS CDK commands - "npx aws-cdk init app --generate-only --language typescript",
@@ -11,15 +11,35 @@ export const ASSETS_DIR:string = `${Deno.cwd()}/assets`;
 
 async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
-  const cdkBin = async ():Promise<{initBinSetup:boolean}> => {
-    Deno.removeSync(`${workspace}/bin`, { recursive: true });
-    await copyDir(`${ASSETS_DIR}/bin`, `${workspace}/bin`);
-    if (Deno.statSync(`${workspace}/bin`).isDirectory) {
-      logger(`CDK almost done...`, undefined , 'file_folder');
-      return {initBinSetup: true}
+  const cdkBin = async (): Promise<{ initBinSetup: boolean }> => {
+    try {
+      Deno.removeSync(`${workspace}/bin`, { recursive: true });
+      await copyDir(`${ASSETS_DIR}/bin`, `${workspace}/bin`);
+      if (Deno.statSync(`${workspace}/bin`).isDirectory) {
+        // Update the entry point in cdk.json and package.json
+        try {
+          const cdkFileContent = await Deno.readTextFile(`${workspace}/cdk.json`);
+          const pkgFileContent = await Deno.readTextFile(`${workspace}/package.json`);
+          const cdkJson = JSON.parse(cdkFileContent);
+          const pkgJson = JSON.parse(pkgFileContent);
+          const cdkentryPointContent = `npx ts-node --prefer-ts-exts bin/backend.ts`;
+          const pkgentryPointContent = `bin/backend.js`;
+          cdkJson.app = cdkentryPointContent;
+          pkgJson.bin.pbs = pkgentryPointContent
+          await Deno.writeTextFile(`${workspace}/cdk.json`, JSON.stringify(cdkJson, null, 2));
+          await Deno.writeTextFile(`${workspace}/package.json`, JSON.stringify(pkgJson, null, 2));
+          return { initBinSetup: true };
+        } catch (error) {
+          logger(`Error updating cdk.json:\n${error}`, chalk.bgRed, 'red_circle');
+          return { initBinSetup: false };
+        }
+      }
+      return { initBinSetup: false };
+    } catch (error) {
+      logger("Error in cdkBin function:", chalk.bgRed, 'red_circle');
+      return { initBinSetup: false };
     }
-    return {initBinSetup: false}
-  }
+  };
 
   // define command used to create the subprocess
   const command = new Deno.Command("npx", {
@@ -34,7 +54,6 @@ async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
     cwd: workspace,
   });
 
-  // create subprocess and collect output
   const { code, stderr, success, stdout } = await command.output();
 
   if (success) {
@@ -53,7 +72,7 @@ async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
 }
 
-async function initNextJs(workspace: string):Promise<{initNextJsSuccess: Boolean}> {
+async function initNextJs(workspace: string):Promise<{initNextJsSuccess: boolean}> {
   logger(`Working on the Frontend...`, undefined, 'building_construction');
 
   const files = [{
@@ -63,20 +82,18 @@ async function initNextJs(workspace: string):Promise<{initNextJsSuccess: Boolean
     src: `${ASSETS_DIR}/template/serverUtils.ts`,
     target: `${workspace}/frontend/_serverActions/serverUtils.ts`,
   }];
-
+  /**
+   * @description Copy the auxilliary files to the frontend directory
+   * @todo Remove this function and use orgainseAssets() instead
+   */
   const initAuxFile = async () => {
     files.forEach(async (file) => {
       try {
-        logger(
-          `📂 ${chalk.green(`Copying the file: ${file.src.split("/").pop()}`)}`,
-          chalk.green,
-        );
-        await Deno.mkdirSync(
-          file.target.split("/").reverse().slice(1).reverse().join("/"),
-        );
+        logger(`Copying the file: ${file.src.split("/").pop()}`, undefined ,'file_cabinet');
+        await Deno.mkdirSync(file.target.split("/").reverse().slice(1).reverse().join("/"));
         await Deno.copyFileSync(file.src, file.target);
       } catch (error) {
-        logger(`🚨 Error copying the file: ${file.src.split("/").pop()}`, chalk.bgRed);
+        logger(`Error copying the file: ${file.src.split("/").pop()}`, chalk.yellow, 'warning');
       }
     });
   };
@@ -111,36 +128,40 @@ async function initNextJs(workspace: string):Promise<{initNextJsSuccess: Boolean
 /**
  * @description Recursive copy directories and files from the assets dir, then find and replace placeholders in the files
  * @param workspace The workspace path
- * @param AppCode The AppCode
- * @param AppName The AppName
- * @param DomainName The DomainName
- * 
  */
-export async function orgainseAssets(
-  workspace: string,
-  AppCode: string,
-  AppName: string,
-  DomainName: string,
-) {
+export async function orgainseAssets(workspace: string) {
   
-  const templateDir = `${ASSETS_DIR}/template/`;
-  const folders = [...Deno.readDirSync(templateDir)]
-
+  const templateDir = `${ASSETS_DIR}/template`;
+  const folders = [...Deno.readDirSync(templateDir)];
+  
   for (const dir of folders) {
-    
-    const fullSrcPath = `${templateDir}${dir.name}`;
+    const fullSrcPath = `${templateDir}/${dir.name}`;
     const fullDestPath = `${workspace}/${dir.name}`;
-
     const stat = Deno.statSync(fullSrcPath);
     
-    if (stat.isDirectory) {
-      await copyDir(fullSrcPath, fullDestPath);
-    } else if (stat.isFile) {
-      await copyFile(fullSrcPath, fullDestPath);
+    try {      
+      if (stat.isDirectory) {
+        await copyDir(fullSrcPath, fullDestPath);
+      } else if (stat.isFile) {
+        if (dir.name === "userCtx.tsx" || dir.name == "serverUtils.ts") {
+          continue;
+        } else {
+          await copyFile(fullSrcPath, fullDestPath);
+        }
+      }
+    } catch (error) {
+      logger(`Error copying the file: ${dir.name}`, chalk.bgRed, 'warning');
     }
   }
 }
 
+/**
+ * @description Find and replace placeholders in the files
+ * @param workspace 
+ * @param AppCode 
+ * @param AppName 
+ * @param DomainName 
+ */
 export async function templater(
   workspace: string,
   AppCode: string,
@@ -148,7 +169,6 @@ export async function templater(
   DomainName: string
 ){
 
-  // Find and replace placeholders in the files
   const config = Deno.readDirSync(`${workspace}/config`);
   logger(`📄 Find + replace on...`, chalk.grey);
   for (const entry of config) {
@@ -165,9 +185,11 @@ export async function templater(
 }
 
 /**
- * Update package.json files in frontend and backend and trigger na install
+ * @description Update package.json files in frontend and backend and trigger an install
+ * @param workspace The workspace path
+ * @param appCode The AppCode
  */
-function updatePkgJson(workspace:string, appCode: string, appName: string, domainName: string) {
+function updatePkgJson(workspace:string, appCode: string) {
   
   const iacPkgJsonPath = `${workspace}/package.json`;
   const frontendPkgJsonPath = `${workspace}/frontend/package.json`;
@@ -262,6 +284,7 @@ async function init(options: IcliOptions) {
   // prep workspace
   let workspace = `${Deno.cwd()}/${options.appCode}`;
   try {
+    Deno.statSync(workspace).isDirectory ? await cleanDir(workspace): null
     await Deno.mkdir(`${workspace}`, { recursive: true });
     logger(`Workspace "${options.appName}" (aka:${options.appCode}) created.`, chalk.green, 'file_cabinet');
   } catch (error) {
@@ -272,9 +295,9 @@ async function init(options: IcliOptions) {
   if (initCdkSuccess){
     logger(`CDK initialized successfully`, chalk.green, 'next_track_button');
     if ((await initNextJs(workspace)).initNextJsSuccess === true) {
-      await orgainseAssets(workspace, options.appCode, options.appName, options.domainName)
+      await updatePkgJson(workspace, options.appCode);
+      await orgainseAssets(workspace);
       await templater(workspace, options.appCode, options.appName, options.domainName);
-      await updatePkgJson(workspace, options.appCode, options.appName, options.domainName);
       await npmInstall(`${workspace}/frontend`)
       await npmInstall(`${workspace}`);
       successExitCli();
@@ -301,8 +324,6 @@ const cliArgs = parseArgs(Deno.args, {
     help: false,
   },
 });
-
-// logger(`Logs:\n${JSON.stringify(cliArgs, null, 2)}`, chalk.yellow)
 
 if (cliArgs.help) {
   showHelp();

@@ -82,7 +82,7 @@ export async function npmInstall(
 export async function copyFile(src: string, dest: string) {
   const from = src.split("/").pop();
   const to = dest.split("/").slice(-3).join("/")
-  logger(`Copying File "${from}" to "./${to}"`, undefined, 'file_folder');
+  // logger(`Copying File "${from}" to "./${to}"`, undefined, 'file_folder');
   await Deno.copyFile(src, dest);
 }
 
