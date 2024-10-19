@@ -7,11 +7,11 @@ export interface IcliOptions {
   appCode: string;
   domainName: string;
 }
-
 /**
  * 
  * @param workspace 
  * @returns success:boolean
+ * @todo Add user confirmation before deleting the workspace
  */
 export async function cleanDir(workspace: string): Promise<{success:boolean}>{
   try {
