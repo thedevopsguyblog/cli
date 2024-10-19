@@ -8,6 +8,22 @@ export interface IcliOptions {
   domainName: string;
 }
 
+/**
+ * 
+ * @param workspace 
+ * @returns success:boolean
+ */
+export async function cleanDir(workspace: string): Promise<{success:boolean}>{
+  try {
+    Deno.removeSync(workspace, { recursive: true });
+    logger(`Removing the current CDK workspace`, undefined, 'file_cabinet');
+    return {success: true};
+  } catch (error) {
+    logger(`Error cleaning the workspace: ${error}`, chalk.bgYellow, 'warning');
+    return {success: false};
+  }
+}
+
 export async function npmInstall(
   targetDir: string,
   pkgName?: string,
@@ -64,7 +80,9 @@ export async function npmInstall(
  * @param dest File path as a string
  */
 export async function copyFile(src: string, dest: string) {
-  // console.info(`Copying File ${src.split("/").pop()} to ../${truncatedPath}`);
+  const from = src.split("/").pop();
+  const to = dest.split("/").slice(-3).join("/")
+  logger(`Copying File "${from}" to "./${to}"`, undefined, 'file_folder');
   await Deno.copyFile(src, dest);
 }
 
