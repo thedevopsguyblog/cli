@@ -15,8 +15,8 @@ export interface IcliOptions {
  */
 export async function cleanDir(workspace: string): Promise<{success:boolean}>{
   try {
-    Deno.removeSync(workspace, { recursive: true });
     logger(`Removing the current CDK workspace`, undefined, 'file_cabinet');
+    await Deno.removeSync(workspace, { recursive: true });
     return {success: true};
   } catch (error) {
     logger(`Error cleaning the workspace: ${error}`, chalk.bgYellow, 'warning');
