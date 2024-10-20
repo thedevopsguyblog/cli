@@ -1,9 +1,10 @@
 name: Publish
+
 on:
   push:
     branches:
       - main
-      - develop 
+      - develop
 
 jobs:
   publish:
@@ -17,8 +18,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Publish package
+        if: github.ref == 'refs/heads/main'
         run: npx jsr publish
-  
+
   pre-release:
     runs-on: ubuntu-latest
 
@@ -31,4 +33,5 @@ jobs:
 
       - name: Publish package
         if: github.ref == 'refs/heads/develop'
-        run: npx jsr publish --pre-release
+        run: |
+          echo "Publishing pre-release package"
