@@ -284,12 +284,20 @@ async function init(options: IcliOptions) {
   // prep workspace
   const workspace = `${Deno.cwd()}/${options.appCode}`;
   try {
-    Deno.statSync(workspace).isDirectory ? await cleanDir(workspace): null
     await Deno.mkdir(workspace);
-    logger(`Workspace "${options.appName}" (aka:${options.appCode}) created.`, chalk.green, 'file_cabinet');
   } catch (error) {
-    logger(`Error creating the Workspace:\n ${error}`,chalk.bgRed, 'warning');
-    Deno.exit(1);
+    if (error instanceof Deno.errors.AlreadyExists) {
+      try {
+        await cleanDir(workspace);
+        await Deno.mkdir(workspace);
+      } catch (error) {
+        logger(`Error cleaning the workspace:\n ${error}`, chalk.bgRed, 'warning');
+        Deno.exit(1);
+      }
+    } else {
+      logger(`Error creating the Workspace:\n ${error}`,chalk.bgRed, 'warning');
+      Deno.exit(1);
+    }
   }
 
   const {initCdkSuccess} = await initCdk(workspace);
