@@ -7,12 +7,15 @@ import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall, cleanD
  * Spawn a subprocess to run the NPX AWS CDK commands - "npx aws-cdk init app --generate-only --language typescript",
  */
 
-export const ASSETS_DIR:string = `${Deno.cwd()}/assets`;
+export const ASSETS_DIR:string = `${import.meta.dirname}/assets`;
+// console.log(import.meta.dirname);
+// console.log(`${Deno.cwd()}/assets`);
 
 async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
   const cdkBin = async (): Promise<{ initBinSetup: boolean }> => {
     try {
+      logger(`Setting up the bin directory...`, undefined, 'file_cabinet');
       Deno.removeSync(`${workspace}/bin`, { recursive: true });
       await copyDir(`${ASSETS_DIR}/bin`, `${workspace}/bin`);
       if (Deno.statSync(`${workspace}/bin`).isDirectory) {
@@ -34,6 +37,7 @@ async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
           return { initBinSetup: false };
         }
       }
+      logger(`Bin directory setup complete`, chalk.green, 'file_cabinet');
       return { initBinSetup: false };
     } catch (error) {
       logger("Error in cdkBin function:", chalk.bgRed, 'red_circle');
@@ -94,6 +98,7 @@ async function initNextJs(workspace: string):Promise<{initNextJsSuccess: boolean
         await Deno.copyFileSync(file.src, file.target);
       } catch (error) {
         logger(`Error copying the file: ${file.src.split("/").pop()}`, chalk.yellow, 'warning');
+        console.error(error);
       }
     });
   };
