@@ -1,6 +1,8 @@
 import type { ChalkInstance } from "npm:chalk@5.3.0";
 import chalk from "npm:chalk@5.3.0";
 import * as emoji from "npm:node-emoji@2.1.3";
+import unzipper from "npm:unzipper";
+
 
 export interface IcliOptions {
   appName: string;
@@ -22,6 +24,148 @@ export async function cleanDir(workspace: string): Promise<{success:boolean}>{
     logger(`Error cleaning the workspace: ${error}`, chalk.bgYellow, 'warning');
     return {success: false};
   }
+}
+
+/**
+ * @description Cleanup the support files
+ * @param workspace 
+ * @param appcode 
+ * @returns void
+ */
+export function cleanupSupportFiles(workspace: string, appcode:string):Promise<void> {
+  
+  const regEx = new RegExp(`^${appcode}-assets-[a-zA-Z0-9]+$`);
+  const zip = new RegExp(`^${appcode}.zip$`);
+
+  for (const dir of Deno.readDirSync(workspace)) {
+    if (dir.isDirectory && regEx.test(dir.name)) {
+      Deno.removeSync(`${workspace}/${dir.name}`, { recursive: true });
+      logger(`Removing the assets directory: ${dir.name}`, undefined, 'file_cabinet');
+    }
+  }
+
+  for (const file of Deno.readDirSync(workspace)) {
+    if (file.isFile && zip.test(file.name)) {
+      Deno.removeSync(`${workspace}/${file.name}`);
+      logger(`Removing the assets zip file: ${file.name}`, undefined, 'file_cabinet');
+    }
+  }
+
+  logger(`Support files cleaned up`, chalk.green, 'file_cabinet');
+  return Promise.resolve();
+
+}    
+
+export async function cdkBin(workspace:string, ASSETS_SRC:string): Promise<{ initBinSetup: boolean }> {
+
+  try {
+    logger(`Setting up the bin directory...`, undefined, 'file_cabinet');
+    Deno.removeSync(`${workspace}/bin`, { recursive: true });
+    await copyDir(`${ASSETS_SRC}/bin`, `${workspace}/bin`);
+    if (Deno.statSync(`${workspace}/bin`).isDirectory) {
+      // Update the entry point in cdk.json and package.json
+      try {
+        const cdkFileContent = await Deno.readTextFile(`${workspace}/cdk.json`);
+        const pkgFileContent = await Deno.readTextFile(`${workspace}/package.json`);
+        const cdkJson = JSON.parse(cdkFileContent);
+        const pkgJson = JSON.parse(pkgFileContent);
+        const cdkentryPointContent = `npx ts-node --prefer-ts-exts bin/backend.ts`;
+        const pkgentryPointContent = `bin/backend.js`;
+        cdkJson.app = cdkentryPointContent;
+        pkgJson.bin.pbs = pkgentryPointContent
+        await Deno.writeTextFile(`${workspace}/cdk.json`, JSON.stringify(cdkJson, null, 2));
+        await Deno.writeTextFile(`${workspace}/package.json`, JSON.stringify(pkgJson, null, 2));
+        return { initBinSetup: true };
+      } catch (error) {
+        logger(`Error updating cdk.json:\n${error}`, chalk.bgRed, 'red_circle');
+        return { initBinSetup: false };
+      }
+    }
+    logger(`Bin directory setup complete`, chalk.green, 'file_cabinet');
+    return { initBinSetup: false };
+  } catch (error) {
+    logger(`Error in cdkBin function:\n${error}`, chalk.bgRed, 'red_circle');
+    return { initBinSetup: false };
+  }
+};
+
+/**
+ * @description Check if the user has network access
+ */
+export async function checkNetworkAccess(): Promise<boolean> {
+  // Check network access
+  const HOST = new URL("https://raw.githubusercontent.com/thedevopsguyblog/cli/refs/heads/main/assets/bin/backend.ts");
+  if (await fetch(HOST.href).then((res) => res.ok)) {
+    logger("Network Access OK", chalk.green, 'globe_with_meridians');
+    return true;
+  } else {
+    logger("Network Error: Unable to access the internet", chalk.bgRed, 'no_entry');
+    return false
+  }
+
+}
+
+/**
+ * @description Download, extract and prepare the assets for the CLI to edit.
+ * @param workspace
+ * @param appcode
+ * @returns success:boolean and ASSETS_TRG:string
+ */
+export const ASSETS_SRC = async (workspace:string, appcode:string):Promise<{sucess:boolean, ASSETS_TRG:string}> => {
+  const ZIP = new URL(`https://github.com/thedevopsguyblog/cli/archive/refs/heads/main.zip`)
+  let targetDir = ""
+  
+  const download = async ():Promise<{success:boolean, filepath:string|null}> => {
+    try {
+      const response = await fetch(ZIP.href);
+      const buffer = new Uint8Array(await response.arrayBuffer());
+      const tmpDir = `${workspace}/${appcode}.zip`;
+      await Deno.writeFile(tmpDir, buffer);
+      logger(`Downloaded the CLI assets to ${tmpDir}`, chalk.green, 'inbox_tray');
+      return {success: true, filepath: tmpDir}
+    } catch (error) {
+      console.error(`Error downloading the CLI assets: ${error}`);
+      return {success: false, filepath: null}
+    }
+  }
+
+  /**
+   * 
+   * @param fp "file path" to the .zip file 
+   * @returns success:boolean
+   */
+  async function unzipAssets (fp:string, appcode:string): Promise<{success:boolean}> {
+    targetDir = Deno.makeTempDirSync({prefix: `${appcode}-assets-`, dir: workspace,});
+    logger(`Processing asset - ${fp}\n into ${targetDir}`, chalk.grey, 'memo');
+
+    try {  
+      // Extract the .zip file
+      const dir = await unzipper.Open.file(fp);
+      await dir.extract({ path: targetDir });      
+    } catch (error) {
+      console.error(`Error unzipping file: ${error}`);
+    }
+
+    if (Deno.statSync(targetDir).isDirectory) {
+      return {success:true}
+    } else {
+      return {success:true}
+    }
+  }
+
+  const {filepath, success} = await download();
+
+  if (filepath && success) {
+    const {success} = await unzipAssets(filepath, appcode);
+    if (success) {
+      return {sucess:true, ASSETS_TRG: `${targetDir}/cli-main/assets`};
+    } else {
+      return {sucess:false, ASSETS_TRG: ""};
+    }
+  } else {
+    return {sucess:false, ASSETS_TRG: ""};
+  }
+
 }
 
 export async function npmInstall(
@@ -80,8 +224,8 @@ export async function npmInstall(
  * @param dest File path as a string
  */
 export async function copyFile(src: string, dest: string) {
-  const from = src.split("/").pop();
-  const to = dest.split("/").slice(-3).join("/")
+  // const from = src.split("/").pop();
+  // const to = dest.split("/").slice(-3).join("/")
   // logger(`Copying File "${from}" to "./${to}"`, undefined, 'file_folder');
   await Deno.copyFile(src, dest);
 }

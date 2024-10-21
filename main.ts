@@ -1,49 +1,27 @@
 import chalk from "npm:chalk@5.3.0";
 import { parseArgs } from "@std/cli/parse-args";
 import type { IcliOptions } from "./helpers.ts";
-import { copyDir, copyFile, logger, showHelp, successExitCli, npmInstall, cleanDir } from "./helpers.ts";
+import { 
+  copyDir, 
+  copyFile, 
+  logger, 
+  showHelp, 
+  successExitCli, 
+  npmInstall, 
+  cleanDir, 
+  ASSETS_SRC, 
+  checkNetworkAccess, 
+  cdkBin,
+  cleanupSupportFiles
+} from "./helpers.ts";
 
 /**
  * Spawn a subprocess to run the NPX AWS CDK commands - "npx aws-cdk init app --generate-only --language typescript",
  */
 
-export const ASSETS_DIR:string = `${import.meta.dirname}/assets`;
-// console.log(import.meta.dirname);
-// console.log(`${Deno.cwd()}/assets`);
-
 async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
-  const cdkBin = async (): Promise<{ initBinSetup: boolean }> => {
-    try {
-      logger(`Setting up the bin directory...`, undefined, 'file_cabinet');
-      Deno.removeSync(`${workspace}/bin`, { recursive: true });
-      await copyDir(`${ASSETS_DIR}/bin`, `${workspace}/bin`);
-      if (Deno.statSync(`${workspace}/bin`).isDirectory) {
-        // Update the entry point in cdk.json and package.json
-        try {
-          const cdkFileContent = await Deno.readTextFile(`${workspace}/cdk.json`);
-          const pkgFileContent = await Deno.readTextFile(`${workspace}/package.json`);
-          const cdkJson = JSON.parse(cdkFileContent);
-          const pkgJson = JSON.parse(pkgFileContent);
-          const cdkentryPointContent = `npx ts-node --prefer-ts-exts bin/backend.ts`;
-          const pkgentryPointContent = `bin/backend.js`;
-          cdkJson.app = cdkentryPointContent;
-          pkgJson.bin.pbs = pkgentryPointContent
-          await Deno.writeTextFile(`${workspace}/cdk.json`, JSON.stringify(cdkJson, null, 2));
-          await Deno.writeTextFile(`${workspace}/package.json`, JSON.stringify(pkgJson, null, 2));
-          return { initBinSetup: true };
-        } catch (error) {
-          logger(`Error updating cdk.json:\n${error}`, chalk.bgRed, 'red_circle');
-          return { initBinSetup: false };
-        }
-      }
-      logger(`Bin directory setup complete`, chalk.green, 'file_cabinet');
-      return { initBinSetup: false };
-    } catch (error) {
-      logger("Error in cdkBin function:", chalk.bgRed, 'red_circle');
-      return { initBinSetup: false };
-    }
-  };
+
 
   // define command used to create the subprocess
   const command = new Deno.Command("npx", {
@@ -61,13 +39,7 @@ async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
   const { code, stderr, success, stdout } = await command.output();
 
   if (success) {
-    const {initBinSetup} = await cdkBin();
-    if (initBinSetup) {
-      return {initCdkSuccess: true}
-    } else {
-      logger(`Error setting up the bin directory.`, chalk.bgRed, 'red_circle');
-      return {initCdkSuccess: false}
-    }
+    return {initCdkSuccess: true}
   } else {
     logger(`Error initializing the CDK.`, chalk.red, 'construction')
     logger(`${new TextDecoder().decode(stderr)}`, chalk.bgRed, 'red_circle');
@@ -76,14 +48,14 @@ async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
 }
 
-async function initNextJs(workspace: string):Promise<{initNextJsSuccess: boolean}> {
+async function initNextJs(workspace: string, EAD:string):Promise<{initNextJsSuccess: boolean}> {
   logger(`Working on the Frontend...`, undefined, 'building_construction');
-
+  console.log(EAD);
   const files = [{
-    src: `${ASSETS_DIR}/template/userCtx.tsx`,
+    src: `${EAD}/template/userCtx.tsx`,
     target: `${workspace}/frontend/context/userCtx.tsx`,
   }, {
-    src: `${ASSETS_DIR}/template/serverUtils.ts`,
+    src: `${EAD}/template/serverUtils.ts`,
     target: `${workspace}/frontend/_serverActions/serverUtils.ts`,
   }];
   /**
@@ -134,9 +106,9 @@ async function initNextJs(workspace: string):Promise<{initNextJsSuccess: boolean
  * @description Recursive copy directories and files from the assets dir, then find and replace placeholders in the files
  * @param workspace The workspace path
  */
-export async function orgainseAssets(workspace: string) {
+export async function orgainseAssets(workspace: string, EAD:string) {
   
-  const templateDir = `${ASSETS_DIR}/template`;
+  const templateDir = `${EAD}/template`;
   const folders = [...Deno.readDirSync(templateDir)];
   
   for (const dir of folders) {
@@ -276,8 +248,8 @@ function updatePkgJson(workspace:string, appCode: string) {
  * Check args, check workspace and run the init functions
  */
 async function init(options: IcliOptions) {
-  const wusVersionNo = (JSON.parse(Deno.readTextFileSync(`./deno.json`)).version as string).includes("pre-release") ? "pre-release" : "stable";
-  wusVersionNo === "pre-release" ? logger(`You are using a pre-release version of the WUS CLI.`, chalk.yellow, "warning") : "On the Stable Branch";
+
+  await checkNetworkAccess() === true ? null : Deno.exit(1);
 
   logger(
     `${`Initializing application...
@@ -288,8 +260,9 @@ async function init(options: IcliOptions) {
     'rocket'
   );
 
-  // prep workspace
+  // Prep workspace
   const workspace = `${Deno.cwd()}/${options.appCode}`;
+
   try {
     await Deno.mkdir(workspace);
   } catch (error) {
@@ -307,25 +280,35 @@ async function init(options: IcliOptions) {
     }
   }
 
+    // EAD = Extracted Assets Directory
+    let EAD = "";
   const {initCdkSuccess} = await initCdk(workspace);
-  if (initCdkSuccess){
-    logger(`CDK initialized successfully`, chalk.green, 'next_track_button');
-    if ((await initNextJs(workspace)).initNextJsSuccess === true) {
-      await updatePkgJson(workspace, options.appCode);
-      await orgainseAssets(workspace);
-      await templater(workspace, options.appCode, options.appName, options.domainName);
-      await npmInstall(`${workspace}/frontend`)
-      await npmInstall(`${workspace}`);
-      successExitCli();
-    } else {
-      logger(`Error initializing the Next.js app\n Exiting Script.`, chalk.bgRed, 'construction');
-      Deno.exit(1);
+  if (initCdkSuccess) {
+    const {ASSETS_TRG } = await ASSETS_SRC(workspace, options.appCode)
+    EAD = ASSETS_TRG;
+    if (ASSETS_TRG) {
+      const {initBinSetup} = await cdkBin(workspace, EAD)
+      if (initBinSetup) {
+        logger(`CDK initialized successfully`, chalk.green, 'next_track_button');
+      }
     }
   } else {
-    // TODO: I need a failExitCli()
+    logger(`Error initializing the CDK.`, chalk.red, 'construction')
     Deno.exit(1);
   }
 
+  if ((await initNextJs(workspace, EAD)).initNextJsSuccess === true) {
+    await updatePkgJson(workspace, options.appCode);
+    await orgainseAssets(workspace, EAD);
+    await templater(workspace, options.appCode, options.appName, options.domainName);
+    await npmInstall(`${workspace}/frontend`)
+    await npmInstall(`${workspace}`);
+    await cleanupSupportFiles(workspace, options.appCode);
+    successExitCli();
+  } else {
+    logger(`Error initializing the Next.js app\n Exiting Script.`, chalk.bgRed, 'construction');
+    Deno.exit(1);
+  }
 }
 
 const cliArgs = parseArgs(Deno.args, {
