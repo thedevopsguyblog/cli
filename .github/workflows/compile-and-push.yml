@@ -33,5 +33,4 @@ jobs:
 
       - name: Publish package
         if: github.ref == 'refs/heads/develop'
-        run: |
-          echo "Publishing pre-release package"
+        run: npx jsr publish

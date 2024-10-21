@@ -276,7 +276,9 @@ function updatePkgJson(workspace:string, appCode: string) {
  * Check args, check workspace and run the init functions
  */
 async function init(options: IcliOptions) {
-  
+  const wusVersionNo = (JSON.parse(Deno.readTextFileSync(`./deno.json`)).version as string).includes("pre-release") ? "pre-release" : "stable";
+  wusVersionNo === "pre-release" ? logger(`You are using a pre-release version of the WUS CLI.`, chalk.yellow, "warning") : "On the Stable Branch";
+
   logger(
     `${`Initializing application...
     AppCode: ${options.appCode},
