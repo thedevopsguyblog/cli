@@ -22,7 +22,6 @@ import {
 async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
 
-
   // define command used to create the subprocess
   const command = new Deno.Command("npx", {
     args: [

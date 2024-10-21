@@ -1,8 +1,7 @@
 import type { ChalkInstance } from "npm:chalk@5.3.0";
 import chalk from "npm:chalk@5.3.0";
 import * as emoji from "npm:node-emoji@2.1.3";
-import unzipper from "npm:unzipper";
-
+import unzipper from "npm:unzipper@^0.12.3";
 
 export interface IcliOptions {
   appName: string;
