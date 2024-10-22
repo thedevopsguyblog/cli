@@ -1,37 +1,88 @@
-import { describe, it } from "jsr:@std/testing/bdd";
-import { expect } from "jsr:@std/expect";
-import { ASSETS_DIR } from "./main.ts";
-import {assert} from "jsr:@std/assert";
+import * as bdd from "jsr:@std/testing/bdd";
+import * as xpt from "jsr:@std/expect";
+import * as cliFns from "./main.ts";
 
-describe("File Generation and Templating", () => {
-    const folders = [...Deno.readDirSync(`${Deno.cwd()}/assets/template`)]
+const tmpDirOps = async (
+    option: "create" | "delete" | "log",
+): Promise<string> => {
+    const folderPath = "wus-cli-test";
+    let dirPath = "";
 
-    it("Array contains Files and Folders", () => {
-        expect(folders.length).toBeGreaterThan(1);
+    switch (option) {
+        case "create": {
+            Deno.mkdirSync(folderPath)
 
-        for (const dir of folders){
-            console.log(dir.name, dir.isFile)
-            expect(dir).toHaveProperty("name");
-            expect(dir).toHaveProperty("isFile");
-            expect(dir).toHaveProperty("isDirectory");
-            expect( typeof dir.name).toBe("string");
-            expect( typeof dir.isFile).toBe("boolean");
-            expect( typeof dir.isDirectory).toBe("boolean");
+            for (const d of Deno.readDirSync(Deno.cwd())) {
+                if (d.isDirectory && folderPath.match(d.name)) {
+                    dirPath = d.name;
+                }
+            }
+            return dirPath;
         }
-    })
 
+        case "delete": {
+            const deletedFolders = [];
+            for (const d of Deno.readDirSync(Deno.cwd())) {
+                if (d.isDirectory && folderPath.match(d.name)) {
+                    deletedFolders.push(d.name);
+                }
+            }
+
+            deletedFolders.forEach((f) => {
+                console.log(`Deleting ${f}`);
+                Deno.removeSync(f, { recursive: true });
+            });
+            return "Deleted workspace";
+        }
+
+        case "log": {
+            for (const d of Deno.readDirSync(Deno.cwd())) {
+                if (d.isDirectory && folderPath.match(d.name)) {
+                    dirPath = d.name;
+                }
+            }
+
+            return dirPath;
+        }
+
+        default:
+            console.error("Pass an option");
+            Deno.exit(1);
+    }
+};
+
+const assets = "./assets";
+
+bdd.describe("Test orgainseAssets & templater Fn", () => {
+    bdd.beforeAll(async () => {
+        await tmpDirOps("create");
+    });
+
+    bdd.it("Should copy assets", async () => {
+        const tmpDir = await tmpDirOps("log");
+        await cliFns.orgainseAssets(tmpDir, assets);
+        await cliFns.templater(tmpDir, "TST", "CLItesting", "clitesting.com");
+    });
+
+    bdd.it("Test k/v pairs in commons", async () => {
+        const commonsFileContent = Deno.readTextFileSync(
+            `${await tmpDirOps("log")}/config/common.ts`,
+        );
+
+        // Extract the object part from the file content
+        const objectPart = commonsFileContent.match(/{[\s\S]*}/)?.[0];
+        const commonVars = eval(`(${objectPart})`);
+
+        // Access the properties
+        const appCode = commonVars.APP_CODE;
+        const productName = commonVars.PRODUCTNAME;
+
+        // Assertions
+        xpt.expect(appCode).toBe("TST");
+        xpt.expect(productName).toBe("CLItesting");
+    });
+
+    bdd.afterAll(async () => {
+        console.log(await tmpDirOps("delete"));
+    });
 });
-
-describe("CLI Arguments", () => {
-    const args = Deno.args;
-    console.log(args)
-    it("Check Domain name (-d)", () => {
-        assert(args.includes("-d"));
-    })
-    it("Check AppName (-a)", () => {
-        assert(args.includes("-a"));
-    })
-    it("Check AppCode (-c)", () => {
-        assert(args.includes("-c"));
-    })
-})

@@ -57,6 +57,7 @@ async function initNextJs(workspace: string, EAD:string):Promise<{initNextJsSucc
     src: `${EAD}/template/serverUtils.ts`,
     target: `${workspace}/frontend/_serverActions/serverUtils.ts`,
   }];
+
   /**
    * @description Copy the auxilliary files to the frontend directory
    * @todo Remove this function and use orgainseAssets() instead
@@ -143,7 +144,7 @@ export async function templater(
   AppCode: string,
   AppName: string,
   DomainName: string
-){
+): Promise<void>{
 
   const config = Deno.readDirSync(`${workspace}/config`);
   logger(`📄 Find + replace on...`, chalk.grey);
@@ -153,9 +154,9 @@ export async function templater(
     logger(`/config/${entry.name}`, chalk.grey);
 
     const replacedFile = file
-      .replace("/%APP_CODE%/g", `"${AppCode}"`)
-      .replace("/%APP_NAME%/g", `"${AppName}"`)
-      .replace("/%DOMAINNAME%/g", `"${DomainName}"`);
+      .replace("%APP_CODE%", `${AppCode}`)
+      .replace("%APP_NAME%", `${AppName}`)
+      .replace("%DOMAINNAME%", `${DomainName}`);
     await Deno.writeTextFile(filePath, replacedFile);
   }
 }
