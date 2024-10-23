@@ -6,7 +6,7 @@ interface BackendStackProps extends cdk.StackProps {
   envVars: { [key: string]: string }
 }
 
-export class MysubAPI extends cdk.Stack {
+export class APIStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
 

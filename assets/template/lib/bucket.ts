@@ -5,7 +5,7 @@ interface BucketStackProps extends cdk.StackProps {
 	envVars: { [key: string]: string };
 }
 
-export class Bucket extends cdk.Stack {
+export class BucketStack extends cdk.Stack {
 	constructor(scope: Construct, id: string, props: BucketStackProps) {
 		super(scope, id, props);
 
