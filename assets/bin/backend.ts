@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { FEStack } from './lib/frontend.ts';
-import { APIStack } from './lib/api.ts';
-import { BucketStack } from './lib/bucket.ts';
-import { NotificationStack } from './lib/notifications.ts';
-import { AuthStack } from './lib/auth.ts';
+import { FEStack } from '../lib/frontend.ts';
+import { APIStack } from '../lib/api.ts';
+import { BucketStack } from '../lib/bucket.ts';
+import { NotificationStack } from '../lib/notifications.ts';
+import { AuthStack } from '../lib/auth.ts';
 import { execSync } from 'node:child_process';
 import { getEnvContext } from '../config';
 
