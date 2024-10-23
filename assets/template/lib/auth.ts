@@ -2,7 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 interface AuthStackProps extends cdk.StackProps {
-  enVars: { [key: string]: string }
+  envVars: { [key: string]: string }
 }
 
 export class AuthStack extends cdk.Stack {
