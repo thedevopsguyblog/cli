@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { FEStack } from '../lib/frontend.ts';
-import { APIStack } from '../lib/api.ts';
-import { BucketStack } from '../lib/bucket.ts';
-import { NotificationStack } from '../lib/notifications.ts';
-import { AuthStack } from '../lib/auth.ts';
+import { FEStack } from '../lib/frontend';
+import { APIStack } from '../lib/api';
+import { BucketStack } from '../lib/bucket';
+import { NotificationStack } from '../lib/notifications';
+import { AuthStack } from '../lib/auth';
 import { execSync } from 'node:child_process';
 import { getEnvContext } from '../config';
 
@@ -59,7 +59,7 @@ const authStack = new AuthStack(app, `${RA}-Auth`, {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION
   },
-  enVars: envVars,
+  envVars: envVars,
   tags: {
     app: `${RA}Auth`,
     repoName: envVars.REPO
@@ -73,7 +73,7 @@ const bucketStack = new BucketStack(app, `${RA}-Bucket`, {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION
   },
-  enVars: envVars,
+  envVars: envVars,
   tags: {
     app: `${RA}Bucket`,
     repoName: envVars.REPO
