@@ -9,18 +9,18 @@ export class AuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AuthStackProps) {
     super(scope, id, props);
 
-    const PREFIX = props.enVars.RESOURCE_PREFIX;
-    const AC = props.enVars.APP_CODE;
+    const PREFIX = props.envVars.RESOURCE_PREFIX;
+    const AC = props.envVars.APP_CODE;
 
     /* Authentication */
     const userPool = new cdk.aws_cognito.UserPool(this, 'userPool', {
-      userPoolName: `${props.enVars.RESOURCE_PREFIX}${AC}`,
+      userPoolName: `${props.envVars.RESOURCE_PREFIX}${AC}`,
       selfSignUpEnabled: true,
       autoVerify: { email: true },
       standardAttributes: {
         email: { required: true }
       },
-      removalPolicy: props.enVars.REMOVALPOLICY as cdk.RemovalPolicy,
+      removalPolicy: props.envVars.REMOVALPOLICY as cdk.RemovalPolicy,
     })
 
     const userPoolDomainName = userPool.addDomain(`${PREFIX}DomainName`, {
@@ -62,8 +62,8 @@ export class AuthStack extends cdk.Stack {
           cdk.aws_cognito.OAuthScope.OPENID,
           cdk.aws_cognito.OAuthScope.PHONE,
         ],
-        callbackUrls: props.enVars.CALLBACK_URL.split(',') as string[],
-        logoutUrls: props.enVars.LOGOUT_URL.split(',') as string[],
+        callbackUrls: props.envVars.CALLBACK_URL.split(',') as string[],
+        logoutUrls: props.envVars.LOGOUT_URL.split(',') as string[],
       },
       supportedIdentityProviders: [
         cdk.aws_cognito.UserPoolClientIdentityProvider.COGNITO,
