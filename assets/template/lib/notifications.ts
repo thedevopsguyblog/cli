@@ -83,7 +83,7 @@ export class NotificationStack extends cdk.Stack {
                 new cdk.aws_sns.Subscription(this, `${PREFIX}${eventKey}Subscription`, {
                     topic: snsTopic,
                     protocol: cdk.aws_sns.SubscriptionProtocol.EMAIL,
-                    endpoint: `nobelworku@gmail.com`,
+                    endpoint: `xxx@gmail.com`,
                 })
 
                 // console.log(`Adding the ${sesConfigSetMappings[key].eventMap[eventKey]} event to the ${key}ConfigSet`)
@@ -102,12 +102,12 @@ export class NotificationStack extends cdk.Stack {
         if (AC.startsWith('P')) {
 
             const importedHostedZone = cdk.aws_route53.PublicHostedZone.fromPublicHostedZoneAttributes(this, 'hostedZone', {
-                hostedZoneId: 'Z08606933IITWE5S1HLNG',
+                hostedZoneId: 'xxxx',
                 zoneName: props!.envVars.DOMAINNAME,
             })
 
             // By Creating a domain we dont have to verify every email address
-            new cdk.aws_ses.EmailIdentity(this, `mysubEID`, {
+            new cdk.aws_ses.EmailIdentity(this, `SeSEmailID`, {
                 identity: cdk.aws_ses.Identity.publicHostedZone(importedHostedZone),
                 feedbackForwarding: true,
             })
