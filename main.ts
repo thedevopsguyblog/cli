@@ -303,6 +303,7 @@ async function init(options: IcliOptions) {
     await templater(workspace, options.appCode, options.appName, options.domainName);
     await npmInstall(`${workspace}/frontend`)
     await npmInstall(`${workspace}`);
+    await npmInstall(`${workspace}`, '--save-dev @types/node');
     await cleanupSupportFiles(workspace, options.appCode);
     successExitCli();
   } else {
