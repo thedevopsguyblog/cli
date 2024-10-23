@@ -13,8 +13,6 @@ export class APIStack extends cdk.Stack {
     const PREFIX = props.envVars.RESOURCE_PREFIX;
     const AC = props.envVars.APP_CODE;
 
-    const orgServiceDDB = cdk.Fn.importValue(`${PREFIX}${AC}OrgServiceDDB`)
-
     const userPoolIdImport = cdk.aws_ssm.StringParameter.fromStringParameterName(this, 'userPoolIdImport', `/${PREFIX}${AC}/userpoolid`)
     const userPoolClientIdImport = cdk.aws_ssm.StringParameter.fromStringParameterName(this, 'userPoolClientIdImport', `/${PREFIX}${AC}/userPoolClientId`)
 
@@ -64,8 +62,6 @@ export class APIStack extends cdk.Stack {
       removalPolicy: props.envVars.REMOVALPOLICY as cdk.RemovalPolicy
     });
 
-    const orgDb = cdk.aws_dynamodb.Table.fromTableName(this, 'orgDb', orgServiceDDB)
-
     //NOTE:GSI's can't be edited - only deleted and then re-deployed
     database.addGlobalSecondaryIndex({
       indexName: 'user-requests',
@@ -80,7 +76,6 @@ export class APIStack extends cdk.Stack {
     
     const requestsDS = api.addDynamoDbDataSource('RequestsTableSource', database)
     const marketingTableDS = api.addDynamoDbDataSource('MarketingTable', marketingTable)
-    const orgDS = api.addDynamoDbDataSource('OrgDetailsTable', orgDb)
 
     /* Re-deploying resolvers can cause issues - may need to delete the stack and redeploy it */
 
@@ -89,46 +84,6 @@ export class APIStack extends cdk.Stack {
       fieldName: 'getRequestsByUser',
       dataSource: requestsDS,
       code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/getRequestsByUser.js')),
-      runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
-    });
-
-    api.createResolver('QueryGetRequestsByOrg', {
-      typeName: 'Query',
-      fieldName: 'getRequestsByOrg',
-      dataSource: requestsDS,
-      code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/getRequestsByOrg.js')),
-      runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
-    });
-
-    // We create the request in DDB and PUT images in S3
-    const mutationCreateRequestFn = new cdk.aws_lambda.Function(this, 'MutationCreateRequestFn', {
-      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
-      description: 'Create a request in DDB and upload images to S3',
-      handler: 'createRequest.handler',
-      code: cdk.aws_lambda.Code.fromAsset(join('api/build/lambdas/createRequest')),
-      environment: {
-        TABLE_NAME: database.tableName,
-        BUCKET_NAME: importedBucketName.bucketName,
-      }
-    })
-
-    importedBucketName.grantReadWrite(mutationCreateRequestFn)
-    database.grantWriteData(mutationCreateRequestFn)
-    const mutationCreateRequestDS = api.addLambdaDataSource('mutationCreateRequestDS', mutationCreateRequestFn)
-
-    api.createResolver('mutationCreateRequestResolver', {
-      typeName: 'Mutation',
-      fieldName: 'createRequest',
-      dataSource: mutationCreateRequestDS,
-      code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/createRequest.js')),
-      runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
-    });
-
-    api.createResolver('queryGetOrg', {
-      typeName: 'Query',
-      fieldName: 'getOrganisationDetails',
-      dataSource: orgDS,
-      code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/getOrg.js')),
       runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
     });
     
@@ -140,42 +95,7 @@ export class APIStack extends cdk.Stack {
       runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
     });
 
-    // We are using a lambda function to update the request and send an email to the assignee so we need these 3x steps
-    // 1. Define A Lambda function
-    const updateReqLambda = new cdk.aws_lambda.Function(this, 'updateReqLambda', {
-      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
-      description: 'Update a request in the database and send an email to the assignee',
-      handler: 'updateRequest.handler',
-      code: cdk.aws_lambda.Code.fromAsset(join('api/build/lambdas/updateRequest')),
-      environment: {
-        TABLE_NAME: database.tableName,
-        // TEMPLATENAME: `${PREFIX}AssignmentTemplate`,
-        // 'NOREPLAY_ADDRESS': `${props.envVars.emailIds[0]}@${props.envVars.FQDN}`,
-        // 'SUPPORT_ADDRESS': `${props.envVars.emailIds[1]}@${props.envVars.FQDN}`,
-        // 'SUBSCRIPTIONS_ADDRESS': `${props.envVars.emailIds[2]}@${props.envVars.FQDN}`,
-      }
-    })
 
-    const policy = new cdk.aws_iam.PolicyStatement({
-      effect: cdk.aws_iam.Effect.ALLOW,
-      actions: ['ses:SendEmail', 'ses:SendTemplatedEmail'],
-      resources: ['*'], // adjust this to limit the scope of the policy
-    });
-
-    updateReqLambda.addToRolePolicy(policy)
-    database.grantWriteData(updateReqLambda)
-
-    // 2. Define the Lambda as a DataSource
-    const updateReqLambdaDS = api.addLambdaDataSource('updateRequestDS', updateReqLambda)
-
-    // 3. Define a resolver - to invoke the lambda and pass the payload
-    api.createResolver('MutationUpdateRequestResolver', {
-      typeName: 'Mutation',
-      fieldName: 'updateRequest',
-      dataSource: updateReqLambdaDS,
-      runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
-      code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/updateRequest.js')),
-    });
 
     //cfn Outputs
     new cdk.aws_ssm.StringParameter(this, `${PREFIX}API_ID`, {

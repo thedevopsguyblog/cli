@@ -2,12 +2,23 @@ import type { ChalkInstance } from "npm:chalk@5.3.0";
 import chalk from "npm:chalk@5.3.0";
 import * as emoji from "npm:node-emoji@2.1.3";
 import unzipper from "npm:unzipper@^0.12.3";
+import * as git from "npm:simple-git@3.27.0"
 
 export interface IcliOptions {
   appName: string;
   appCode: string;
   domainName: string;
 }
+
+/**
+ * @description Git init the workspace
+ * @param workspace 
+ */
+export async function gitInt(workspace:string): Promise<git.InitResult>{
+  const init = await git.simpleGit(workspace).init();  
+  return init;
+}
+
 /**
  * 
  * @param workspace 
@@ -35,6 +46,8 @@ export function cleanupSupportFiles(workspace: string, appcode:string):Promise<v
   
   const regEx = new RegExp(`^${appcode}-assets-[a-zA-Z0-9]+$`);
   const zip = new RegExp(`^${appcode}.zip$`);
+
+  Deno.removeSync(`${workspace}/lib/${appcode}-stack.ts`);
 
   for (const dir of Deno.readDirSync(workspace)) {
     if (dir.isDirectory && regEx.test(dir.name)) {
