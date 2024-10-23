@@ -12,7 +12,8 @@ import {
   ASSETS_SRC, 
   checkNetworkAccess, 
   cdkBin,
-  cleanupSupportFiles
+  cleanupSupportFiles,
+  gitInt
 } from "./helpers.ts";
 
 /**
@@ -174,22 +175,32 @@ function updatePkgJson(workspace:string, appCode: string) {
   const editIacPkgJson = () => {
 
     const iacDevDeps = {
-      "@aws-cdk/aws-amplify-alpha": "^2.147.1-alpha.0",
+      "aws-cdk": "2.163.1",
+      "esbuild": "^0.21.5",
+      "esbuild-plugin-eslint": "^0.3.12",
+      "glob": "^10.4.2",
+      "jest": "^29.7.0",
+      "ts-jest": "^29.2.5",
+      "ts-node": "^10.9.2",
+      "typescript": "~5.6.2",
       "aws-amplify": "^6.4.3",
+      "aws-sdk-client-mock": "^4.0.1",
+      "@aws-cdk/aws-amplify-alpha": "^2.147.1-alpha.0",
       "@aws-appsync/utils": "^1.8.0",
       "@aws-sdk/client-cognito-identity-provider": "^3.654.0",
       "@aws-sdk/client-dynamodb": "^3.602.0",
       "@aws-sdk/client-sesv2": "^3.600.0",
       "@aws-sdk/client-sqs": "^3.651.1",
-      "aws-sdk-client-mock": "^4.0.1",
       "@aws-sdk/client-appsync": "^3.600.0",
       "@aws-sdk/client-cloudformation": "^3.609.0",
+      "@types/jest": "^29.5.12",
+      "@types/node": "22.5.4",
     };
 
     const iacScripts = {
       "codegen": "cd api && npx @aws-amplify/cli codegen && cd ../frontend && npx @aws-amplify/cli codegen",
-      "deploy:fe": `"cdk deploy ${appCode}-FE-Hosting"`,
-      "dev:api": `"node api/build.mjs && npx aws-cdk deploy \"${appCode}-API\" -e true --hotswap true --require-approval never"`,
+      "deploy:fe": `cdk deploy ${appCode}-FE-Hosting`,
+      "dev:api": `node api/build.mjs && npx aws-cdk deploy D${appCode}-API -e true --hotswap true --require-approval never`,
       "dev:fullstack": "node api/build.mjs && npx aws-cdk deploy D* --require-approval never --outputs-file ./frontend/amplifyconfiguration.json",
       "postdev:fullstack": "npx ts-node --prefer-ts-exts bin/frontend.ts",
       "build": "tsc",
@@ -201,7 +212,7 @@ function updatePkgJson(workspace:string, appCode: string) {
     logger(`📄 Updating IAC file... ${JSON.stringify(iacPkgJsonPath)}`, chalk.grey);
     try {
       const iacPkgFile = JSON.parse(Deno.readTextFileSync(iacPkgJsonPath));
-      iacPkgFile.script = {...iacScripts}
+      iacPkgFile.scripts = {...iacScripts}
       iacPkgFile.devDependencies = {...iacDevDeps}
       Deno.writeFileSync(iacPkgJsonPath, new TextEncoder().encode(JSON.stringify(iacPkgFile, null, 2)));
       return `📄 ${chalk.bgGray("Frontend package.json file updated")}`;
@@ -219,7 +230,7 @@ function updatePkgJson(workspace:string, appCode: string) {
       "start": "next start",
       "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix",
       "codegen:api": "cd backend/api && npx @aws-amplify/cli codegen",
-      "deploy:api":`"cd backend && npx aws-cdk deploy D${appCode}-API-DB --require-approval never"`,
+      "deploy:api":`cd backend && npx aws-cdk deploy D${appCode}-API-DB --require-approval never`,
       "predeploy:api": "node backend/api/build.mjs",
     };
 
@@ -303,8 +314,9 @@ async function init(options: IcliOptions) {
     await templater(workspace, options.appCode, options.appName, options.domainName);
     await npmInstall(`${workspace}/frontend`)
     await npmInstall(`${workspace}`);
-    await npmInstall(`${workspace}`, '--save-dev @types/node');
+    await npmInstall(workspace)
     await cleanupSupportFiles(workspace, options.appCode);
+    await gitInt(workspace);
     successExitCli();
   } else {
     logger(`Error initializing the Next.js app\n Exiting Script.`, chalk.bgRed, 'construction');
