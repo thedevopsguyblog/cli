@@ -56,12 +56,6 @@ export class APIStack extends cdk.Stack {
       removalPolicy: props.envVars.REMOVALPOLICY as cdk.RemovalPolicy
     })
 
-    const marketingTable = new cdk.aws_dynamodb.Table(this, 'MarketingTable', {
-      partitionKey: { name: 'emailaddress', type: cdk.aws_dynamodb.AttributeType.STRING},
-      billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
-      removalPolicy: props.envVars.REMOVALPOLICY as cdk.RemovalPolicy
-    });
-
     //NOTE:GSI's can't be edited - only deleted and then re-deployed
     database.addGlobalSecondaryIndex({
       indexName: 'user-requests',
@@ -75,7 +69,6 @@ export class APIStack extends cdk.Stack {
     })
     
     const requestsDS = api.addDynamoDbDataSource('RequestsTableSource', database)
-    const marketingTableDS = api.addDynamoDbDataSource('MarketingTable', marketingTable)
 
     /* Re-deploying resolvers can cause issues - may need to delete the stack and redeploy it */
 
@@ -86,16 +79,6 @@ export class APIStack extends cdk.Stack {
       code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/getRequestsByUser.js')),
       runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
     });
-    
-    api.createResolver('MutationUpdateWatchlist', {
-      typeName: 'Mutation',
-      fieldName: 'updateWatchlist',
-      dataSource: marketingTableDS,
-      code: cdk.aws_appsync.Code.fromAsset(join('api/build/resolvers/updateWatchlist.js')),
-      runtime: cdk.aws_appsync.FunctionRuntime.JS_1_0_0,
-    });
-
-
 
     //cfn Outputs
     new cdk.aws_ssm.StringParameter(this, `${PREFIX}API_ID`, {
@@ -120,6 +103,7 @@ export class APIStack extends cdk.Stack {
       exportName: `${PREFIX}${AC}apiID`,
       value: api.apiId,
     })
+    
     new cdk.CfnOutput(this, `endpoint`, {
       exportName: `${PREFIX}${AC}endpoint`,
       value: api.graphqlUrl,

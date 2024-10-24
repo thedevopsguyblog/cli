@@ -33,24 +33,24 @@ if (envVars.RESOURCE_PREFIX === 'P') {
       envVars: envVars,
       tags: {
         app: `${RA}-FE-Hosting`,
-        repoName: envVars.REPO
+        //repoName: envVars.REPO //TODO:Support this field
       }
     });
 }
 
-const notificationsStack = new NotificationStack(app, `${RA}-Notifications`, {
-  stackName:`${RA}-Notifications`,
-  description: `Notifications for ${RA}`,
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION
-  },
-  envVars: envVars,
-  tags: {
-    app: `${RA}-Notifications`,
-    repoName: envVars.REPO
-  }
-})
+// const notificationsStack = new NotificationStack(app, `${RA}-Notifications`, {
+//   stackName:`${RA}-Notifications`,
+//   description: `Notifications for ${RA}`,
+//   env: {
+//     account: process.env.CDK_DEFAULT_ACCOUNT,
+//     region: process.env.CDK_DEFAULT_REGION
+//   },
+//   envVars: envVars,
+//   tags: {
+//     app: `${RA}-Notifications`,
+//     //repoName: envVars.REPO //TODO:Support this field
+//   }
+// })
 
 const authStack = new AuthStack(app, `${RA}-Auth`, {
   stackName:`${RA}-Auth`,
@@ -62,7 +62,7 @@ const authStack = new AuthStack(app, `${RA}-Auth`, {
   envVars: envVars,
   tags: {
     app: `${RA}Auth`,
-    repoName: envVars.REPO
+    //repoName: envVars.REPO //TODO:Support this field
   }
 });
 
@@ -76,7 +76,7 @@ const bucketStack = new BucketStack(app, `${RA}-Bucket`, {
   envVars: envVars,
   tags: {
     app: `${RA}Bucket`,
-    repoName: envVars.REPO
+    //repoName: envVars.REPO //TODO:Support this field
   }
 });
 
@@ -90,7 +90,7 @@ const apistack = new APIStack(app, `${RA}-API`, {
   envVars: envVars,
   tags: {
     app: `${RA}-API-DB`,
-    repoName: envVars.REPO
+    //repoName: envVars.REPO //TODO:Support this field
   }
 })
 

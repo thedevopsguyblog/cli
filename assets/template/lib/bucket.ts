@@ -13,7 +13,7 @@ export class BucketStack extends cdk.Stack {
         const AC = props.envVars.APP_CODE;
 		const FQDN = props.envVars.FQDN
 
-		const authedRoleArn = cdk.aws_ssm.StringParameter.valueForStringParameter(this, `/${PREFIX}${AC}/authedRole`)
+		// const authedRoleArn = cdk.aws_ssm.StringParameter.valueForStringParameter(this, `/${PREFIX}${AC}/authedRole`)
 
 		const bucket = new cdk.aws_s3.Bucket(this, `${PREFIX}${AC}-objectStore`, {
 			bucketName: `${PREFIX}${AC}-objectStore`.toLowerCase(),
@@ -38,9 +38,9 @@ export class BucketStack extends cdk.Stack {
 			}]
 		})
 
-		const authedRoleImport = cdk.aws_iam.Role.fromRoleArn(this, `AuthedIdentityPoolRole_${PREFIX}_${AC}`, authedRoleArn)
+		// const authedRoleImport = cdk.aws_iam.Role.fromRoleArn(this, `AuthedIdentityPoolRole_${PREFIX}_${AC}`, authedRoleArn)
 
-		bucket.grantReadWrite(authedRoleImport)
+		// bucket.grantReadWrite(authedRoleImport)
 
 		new cdk.CfnOutput(this, 'BucketName', {
 			value: bucket.bucketName,
