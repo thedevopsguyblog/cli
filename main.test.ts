@@ -1,6 +1,7 @@
 import * as bdd from "jsr:@std/testing/bdd";
 import * as xpt from "jsr:@std/expect";
 import * as cliFns from "./main.ts";
+import * as hlpFns from "./helpers.ts";
 
 const tmpDirOps = async (
     option: "create" | "delete" | "log",
@@ -81,6 +82,23 @@ bdd.describe("Test orgainseAssets & templater Fn", () => {
         xpt.expect(appCode).toBe("TST");
         xpt.expect(productName).toBe("CLItesting");
     });
+
+    bdd.afterAll(async () => {
+        console.log(await tmpDirOps("delete"));
+    });
+});
+
+bdd.describe("Test NPM Install process", () => {
+    bdd.beforeAll(async () => {
+        await tmpDirOps("create");
+    })
+    
+    bdd.it("Should spawn a process", async () => {
+        const tmpDir = await tmpDirOps("log");
+        const installCmd = await hlpFns.npmInstall(tmpDir, "glob");
+        console.log(installCmd);
+    });
+
 
     bdd.afterAll(async () => {
         console.log(await tmpDirOps("delete"));
