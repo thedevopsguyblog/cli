@@ -42,13 +42,15 @@ export class FEStack extends cdk.Stack {
     let buildSpec:BuildSpec = cdk.aws_codebuild.BuildSpec.fromSourceFilename(fs.readFileSync('./lib/ampBuildSpec.yml', 'utf8'))
     var personalaccesstoken = cdk.aws_secretsmanager.Secret.fromSecretNameV2(this, `accessToken`, `github-token`).secretValue
 
+    const sourceCodeProvider = new amplifyAlpha.GitHubSourceCodeProvider({
+      owner: FQDN ? props!.envVars.OWNER : 'null',
+      repository: FQDN ? props!.envVars.REPO : 'null',
+      oauthToken: personalaccesstoken,
+    })
+
     const fehosting = new amplifyAlpha.App(this, `${AC}Hosting`, {
       role: amplifyDeploymentRole,
-      sourceCodeProvider: new amplifyAlpha.GitHubSourceCodeProvider({
-        owner: props!.envVars.OWNER,
-        repository: props!.envVars.REPO,
-        oauthToken:personalaccesstoken
-      }),
+      ...(FQDN !== 'www.*.amplifyapp.com' && { sourceCodeProvider: sourceCodeProvider }), //Pretty cool TS syntax
       appName:props?.envVars.PRODUCTNAME,
       description: props?.envVars.DESCRIPTION,
       platform:amplifyAlpha.Platform.WEB_COMPUTE,
