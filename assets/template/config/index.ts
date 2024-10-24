@@ -9,6 +9,7 @@ export const getEnvContext = (branch: string) => {
         case 'test':
             return testVars
         case 'main':
+        case 'master':
             return prodVars
         default:
             return devVars
