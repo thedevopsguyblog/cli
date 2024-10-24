@@ -339,7 +339,7 @@ async function init(options: IcliOptions) {
   }
 }
 
-export const cliArgs = parseArgs(Deno.args, {
+export const cliArgs:any = parseArgs(Deno.args, {
   alias: {
     h: "help",
     a: "APP_NAME",
