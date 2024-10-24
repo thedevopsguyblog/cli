@@ -180,10 +180,18 @@ export const ASSETS_SRC = async (workspace:string, appcode:string):Promise<{suce
 
 }
 
+/**
+ * Install a package in the target directory
+ * @param {string} targetDir Directory to install the package
+ * @param {string} [pkgName] Name of the package to install
+ * @returns {boolean} Success or failure of the installation
+ * @example await npmInstall("./repo/my-app", "express@2.3")
+ */
 export async function npmInstall(
   targetDir: string,
   pkgName?: string,
 ): Promise<boolean> {
+
   const installAll = async (): Promise<boolean> => {
     const command = new Deno.Command("npm", {
       args: ["install"],
@@ -208,6 +216,7 @@ export async function npmInstall(
         pkgName,
       ],
       cwd: targetDir,
+
     });
 
     const { status } = command.spawn();
@@ -222,7 +231,7 @@ export async function npmInstall(
   };
 
   if (pkgName) {
-    console.log(`Installing ${pkgName} in ${targetDir}`, chalk.grey);
+    logger(`Installing ${pkgName} in ${targetDir}`, chalk.grey, 'package');
     return await installPkg(pkgName);
   } else {
     logger(`Installing all dependencies in ${targetDir}`, chalk.grey);
@@ -319,11 +328,9 @@ Source Code: https://github.com/thedevopsguyblog/cli
 `);
 }
 
-export const successExitCli = () => {
-  logger(`✅ All Done!.`, chalk.green);
-  logger(
-    `🧑🏾‍💻 You can start building your Serverless (AppSync) +  NextJS 14 Saas!`,
-    chalk.green,
-  );
+export const successExitCli = (targetDir:string) => {
+  // new Deno.Command("node", {args:["api/build.mjs"], cwd: targetDir, stdin: "piped", stdout:"piped", stderr: "piped"}).spawn()
+  logger(`All Done!.`, chalk.green, 'check_mark_button');
+  logger(`You can start building your Serverless (AppSync) +  NextJS 14 Saas!`,chalk.green, 'man_technologist');
   Deno.exit(0);
 };

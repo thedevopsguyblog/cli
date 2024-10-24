@@ -105,9 +105,12 @@ async function initNextJs(workspace: string, EAD:string):Promise<{initNextJsSucc
 
 /**
  * @description Recursive copy directories and files from the assets dir, then find and replace placeholders in the files
- * @param workspace The workspace path
+ * @param workspace - The workspace path
+ * @param EAD - The Extracted Assets Directory
+ * @param domainName - The domain name
+ * @example await orgainseAssets(workspace, EAD, options.domainName)
  */
-export async function orgainseAssets(workspace: string, EAD:string) {
+export async function orgainseAssets(workspace: string, EAD:string, domainName: string): Promise<void>{
   
   const templateDir = `${EAD}/template`;
   const folders = [...Deno.readDirSync(templateDir)];
@@ -130,6 +133,18 @@ export async function orgainseAssets(workspace: string, EAD:string) {
     } catch (error) {
       logger(`Error copying the file: ${dir.name}`, chalk.bgRed, 'warning');
     }
+  }
+
+  if (domainName.includes("amplifyapp.com")) {
+    await Deno.remove(`${workspace}/lib/notifications.ts`);
+    const replaceInFile = async (filePath: string, searchValue: string, replaceValue: string) => {
+      const file = Deno.readTextFileSync(filePath);
+      const newFile = file.replace(searchValue, replaceValue);
+      await Deno.writeTextFile(filePath, newFile);
+    }
+
+    replaceInFile(`${workspace}/bin/backend.ts`, "import { NotificationStack } from '../lib/notifications';", "");
+    replaceInFile(`${workspace}/bin/backend.ts`, "apistack.addDependency(notificationsStack, 'We need the SNS topics to exists before we can create the API')", "");
   }
 }
 
@@ -310,14 +325,14 @@ async function init(options: IcliOptions) {
 
   if ((await initNextJs(workspace, EAD)).initNextJsSuccess === true) {
     await updatePkgJson(workspace, options.appCode);
-    await orgainseAssets(workspace, EAD);
+    await orgainseAssets(workspace, EAD, options.domainName);
     await templater(workspace, options.appCode, options.appName, options.domainName);
     await npmInstall(`${workspace}/frontend`)
     await npmInstall(`${workspace}`);
     await npmInstall(workspace)
     await cleanupSupportFiles(workspace, options.appCode);
     await gitInt(workspace);
-    successExitCli();
+    successExitCli(workspace);
   } else {
     logger(`Error initializing the Next.js app\n Exiting Script.`, chalk.bgRed, 'construction');
     Deno.exit(1);
@@ -334,6 +349,7 @@ const cliArgs = parseArgs(Deno.args, {
   string: ["APP_NAME", "APP_CODE", "DOMAINNAME"],
   default: {
     help: false,
+    DOMAINNAME: "*.amplifyapp.com"
   },
 });
 
