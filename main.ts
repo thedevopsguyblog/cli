@@ -339,17 +339,21 @@ async function init(options: IcliOptions) {
   }
 }
 
-const cliArgs = parseArgs(Deno.args, {
+export const cliArgs = parseArgs(Deno.args, {
   alias: {
     h: "help",
     a: "APP_NAME",
     c: "APP_CODE",
     d: "DOMAINNAME",
+    go: "GH_OWNER",
+    gr: "GH_REPO"
   },
-  string: ["APP_NAME", "APP_CODE", "DOMAINNAME"],
+  string: ["APP_NAME", "APP_CODE", "DOMAINNAME", ],
   default: {
     help: false,
-    DOMAINNAME: "*.amplifyapp.com"
+    DOMAINNAME: "*.amplifyapp.com",
+    GH_OWNER: "null",
+    GH_REPO: "null",
   },
 });
 
@@ -360,6 +364,13 @@ if (cliArgs.help) {
 
 if (!cliArgs.APP_NAME || !cliArgs.APP_CODE || !cliArgs.DOMAINNAME) {
   logger("Please provide all the required arguments", chalk.yellow, 'warning');
+  showHelp();
+  Deno.exit(1);
+}
+
+if (!cliArgs.GH_OWNER || !cliArgs.GH_REPO) {
+  logger("Please provide the GitHub owner and repository", chalk.yellow, 'warning');
+  logger("\"git@github.com:*GO*/*GR*.git\" -go *GO* -gr *GR*", chalk.grey, 'info');
   showHelp();
   Deno.exit(1);
 }

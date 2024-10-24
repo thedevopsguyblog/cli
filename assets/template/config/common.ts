@@ -5,9 +5,8 @@ export const commonVars: Record<string, string|any> = {
   DESCRIPTION:'',
   PRODUCTNAME: "%APP_NAME%",
   // Git Repo
-  // OWNER: 'mySub-SaaS',
-  OWNER: 'thedevopsguyblog',
-  REPO: '',
+  OWNER: "%GH_OWNER%",
+  REPO: "%GH_REPO%",
   // Environment parameters
   GHSECRET: 'github-oath-token',
   PERSONALGHSECRET: '/personal/github-access-token',
