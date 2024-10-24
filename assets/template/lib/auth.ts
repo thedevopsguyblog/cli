@@ -67,7 +67,7 @@ export class AuthStack extends cdk.Stack {
       },
       supportedIdentityProviders: [
         cdk.aws_cognito.UserPoolClientIdentityProvider.COGNITO,
-        cdk.aws_cognito.UserPoolClientIdentityProvider.GOOGLE,
+        // cdk.aws_cognito.UserPoolClientIdentityProvider.GOOGLE,
       ]
     })
 
@@ -167,17 +167,22 @@ export class AuthStack extends cdk.Stack {
     new cdk.CfnOutput(this, `userPoolId`, {
       value: userPool.userPoolId,
     })
+
     new cdk.CfnOutput(this, `userPoolDomainName`, {
       value: `${userPoolDomainName.domainName}.auth.${this.region}.amazoncognito.com`,
     })
+
     new cdk.CfnOutput(this, `userPoolDomainNameRedirect`, {
       value: `https://${userPoolDomainName.domainName}.auth.${this.region}.amazoncognito.com/oauth2/idpresponse`,
     })
+
     new cdk.CfnOutput(this, `userPoolClientId`, {
       value: userPoolClient.userPoolClientId
     })
+
     new cdk.CfnOutput(this, `identityPoolId`, {
       value: identityPool.attrId
     })
+
   }
 }
