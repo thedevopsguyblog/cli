@@ -11,6 +11,69 @@ export interface IcliOptions {
 }
 
 /**
+ * 
+ * @param cmd A command like 'npx' or 'git', we assume the package is already installed.
+ * @param args Arguments for the command
+ * @param cwd Current working directory, default is Deno.cwd()
+ * @returns success: boolean, cp: Deno.ChildProcess
+ * @example const { success, cp } = await spawner('npx', ['create-react-app', 'my-app'], Deno.cwd());
+ */
+export async function spawner(cmd:string, args:string[], cwd:string = Deno.cwd() ): Promise<{ success: boolean, cp:Deno.ChildProcess }> {
+
+  const closeCP = async () => {
+    await childProcess.stdin.close()
+    await childProcess.stdout.cancel()
+    await childProcess.stderr.cancel()
+
+  }
+
+  const command = new Deno.Command(cmd, {
+    args,
+    cwd,
+    stdin: "piped",
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  
+  const streamStdout = async (reader:ReadableStreamDefaultReader<Uint8Array>) => {
+    let done = false;
+
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      console.log('Reading from stdout');
+      console.log(value, '\n', readerDone);
+      
+      if (value) {
+        const chunk = new TextDecoder().decode(value, {stream: true});
+        console.log('Chunk:',chunk);
+
+      // Check for prompt and wait for user input
+      if (chunk.includes("Need to install the following packages:")) {
+        const userInput = prompt("yes or no: ");
+        if (userInput !== null) {
+          const input = new TextEncoder().encode(userInput + "\n");
+          await childProcess.stdin.getWriter().write(input);
+        }
+      }
+    }
+    done = readerDone;
+  }
+}
+
+  const childProcess = command.spawn();
+  await streamStdout(childProcess.stdout.getReader()).finally( () => closeCP());
+  
+
+  if ((await childProcess.status).success) {
+    return { success: (await childProcess.status).success, cp: childProcess };
+  } else {
+    console.error(`Error: ${(await childProcess.status).code}`);
+    return { success: (await childProcess.status).success, cp: childProcess };
+  }
+}
+
+/**
  * @description Git init the workspace
  * @param workspace 
  */
