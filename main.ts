@@ -13,7 +13,8 @@ import {
   checkNetworkAccess, 
   cdkBin,
   cleanupSupportFiles,
-  gitInt
+  gitInt,
+  spawner
 } from "./helpers.ts";
 
 /**
@@ -22,27 +23,17 @@ import {
 
 async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
 
-
-  // define command used to create the subprocess
-  const command = new Deno.Command("npx", {
-    args: [
-      "aws-cdk",
-      "init",
-      "app",
-      "--generate-only",
-      "--language",
-      "typescript",
-    ],
-    cwd: workspace,
-  });
-
-  const { code, stderr, success, stdout } = await command.output();
+  const {cp, success} = await spawner(
+    "npx", 
+    ["aws-cdk", "init", "app", "--generate-only", "--language", "typescript"], 
+    workspace,
+  );
 
   if (success) {
     return {initCdkSuccess: true}
   } else {
+    logger(`Error:\n${cp.stderr}\n`, undefined, 'construction')
     logger(`Error initializing the CDK.`, chalk.red, 'construction')
-    logger(`${new TextDecoder().decode(stderr)}`, chalk.bgRed, 'red_circle');
     return {initCdkSuccess: false}
   }
 
