@@ -18,15 +18,12 @@ export interface IcliOptions {
  * @returns success: boolean, cp: Deno.ChildProcess
  * @example const { success, cp } = await spawner('npx', ['create-react-app', 'my-app'], Deno.cwd());
  */
-export async function spawner(cmd:string, args:string[], cwd:string = Deno.cwd() ): Promise<{ success: boolean, cp:Deno.ChildProcess }> {
-
-  const closeCP = async () => {
-    await childProcess.stdin.close()
-    await childProcess.stdout.cancel()
-    await childProcess.stderr.cancel()
-
-  }
-
+export async function spawner(
+  cmd: string,
+  args: string[],
+  cwd: string = Deno.cwd()
+): Promise<{ success: boolean; cp: Deno.ChildProcess }> {
+  
   const command = new Deno.Command(cmd, {
     args,
     cwd,
@@ -35,42 +32,88 @@ export async function spawner(cmd:string, args:string[], cwd:string = Deno.cwd()
     stderr: "piped",
   });
 
+  const childProcess = command.spawn();
   
-  const streamStdout = async (reader:ReadableStreamDefaultReader<Uint8Array>) => {
-    let done = false;
+  // Create a cleanup function that properly handles stream cleanup
+  const cleanup = async () => {
+    const cleanupStream = async (stream: ReadableStream) => {
+      try {
+        const reader = stream.getReader();
+        try {
+          await reader.cancel();
+        } finally {
+          reader.releaseLock();
+        }
+      } catch (error) {
+        console.error(`Stream cleanup error: ${error}`);
+      }
+    };
 
-    while (!done) {
-      const { value, done: readerDone } = await reader.read();
-      console.log('Reading from stdout');
-      console.log(value, '\n', readerDone);
-      
-      if (value) {
-        const chunk = new TextDecoder().decode(value, {stream: true});
-        console.log('Chunk:',chunk);
+    await Promise.allSettled([
+      cleanupStream(childProcess.stdout),
+      cleanupStream(childProcess.stderr),
+      childProcess.stdin.close().catch(err => 
+        console.error(`Error closing stdin: ${err}`)
+      )
+    ]);
+  };
 
-      // Check for prompt and wait for user input
+  // Improved stream processing function
+  const processStream = async (
+    stream: ReadableStream,
+    onData: (chunk: string) => Promise<void>
+  ) => {
+    const reader = stream.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          const chunk = new TextDecoder().decode(value, { stream: true });
+          await onData(chunk);
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  // Process stdout with package installation prompts
+  try {
+    await processStream(childProcess.stdout, async (chunk) => {
+      if (/\d+\.\d+\.\d+ \(build .+\)/.test(chunk)) {
+        console.log(chunk);
+      }
       if (chunk.includes("Need to install the following packages:")) {
         const userInput = prompt("yes or no: ");
         if (userInput !== null) {
-          const input = new TextEncoder().encode(userInput + "\n");
-          await childProcess.stdin.getWriter().write(input);
+          const writer = childProcess.stdin.getWriter();
+          try {
+            await writer.write(
+              new TextEncoder().encode(userInput + "\n")
+            );
+          } finally {
+            writer.releaseLock();
+          }
         }
       }
-    }
-    done = readerDone;
+    });
+  } catch (error) {
+    console.error(`Error processing stdout: ${error}`);
   }
-}
 
-  const childProcess = command.spawn();
-  await streamStdout(childProcess.stdout.getReader()).finally( () => closeCP());
-  
+  // Wait for process to complete
+  const status = await childProcess.status;
 
-  if ((await childProcess.status).success) {
-    return { success: (await childProcess.status).success, cp: childProcess };
-  } else {
-    console.error(`Error: ${(await childProcess.status).code}`);
-    return { success: (await childProcess.status).success, cp: childProcess };
+  // Clean up resources
+  await cleanup();
+
+  // Return result
+  if (!status.success) {
+    console.error(`Process failed with code: ${status.code}`);
   }
+
+  return { success: status.success, cp: childProcess };
 }
 
 /**
