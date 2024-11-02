@@ -11,6 +11,112 @@ export interface IcliOptions {
 }
 
 /**
+ * 
+ * @param cmd A command like 'npx' or 'git', we assume the package is already installed.
+ * @param args Arguments for the command
+ * @param cwd Current working directory, default is Deno.cwd()
+ * @returns success: boolean, cp: Deno.ChildProcess
+ * @example const { success, cp } = await spawner('npx', ['create-react-app', 'my-app'], Deno.cwd());
+ */
+export async function spawner(
+  cmd: string,
+  args: string[],
+  cwd: string = Deno.cwd()
+): Promise<{ success: boolean; cp: Deno.ChildProcess }> {
+  
+  const command = new Deno.Command(cmd, {
+    args,
+    cwd,
+    stdin: "piped",
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  const childProcess = command.spawn();
+  
+  // Create a cleanup function that properly handles stream cleanup
+  const cleanup = async () => {
+    const cleanupStream = async (stream: ReadableStream) => {
+      try {
+        const reader = stream.getReader();
+        try {
+          await reader.cancel();
+        } finally {
+          reader.releaseLock();
+        }
+      } catch (error) {
+        console.error(`Stream cleanup error: ${error}`);
+      }
+    };
+
+    await Promise.allSettled([
+      cleanupStream(childProcess.stdout),
+      cleanupStream(childProcess.stderr),
+      childProcess.stdin.close().catch(err => 
+        console.error(`Error closing stdin: ${err}`)
+      )
+    ]);
+  };
+
+  // Improved stream processing function
+  const processStream = async (
+    stream: ReadableStream,
+    onData: (chunk: string) => Promise<void>
+  ) => {
+    const reader = stream.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          const chunk = new TextDecoder().decode(value, { stream: true });
+          await onData(chunk);
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  // Process stdout with package installation prompts
+  try {
+    await processStream(childProcess.stdout, async (chunk) => {
+      if (/\d+\.\d+\.\d+ \(build .+\)/.test(chunk)) {
+        console.log(chunk);
+      }
+      if (chunk.includes("Need to install the following packages:")) {
+        const userInput = prompt("yes or no: ");
+        if (userInput !== null) {
+          const writer = childProcess.stdin.getWriter();
+          try {
+            await writer.write(
+              new TextEncoder().encode(userInput + "\n")
+            );
+          } finally {
+            writer.releaseLock();
+          }
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`Error processing stdout: ${error}`);
+  }
+
+  // Wait for process to complete
+  const status = await childProcess.status;
+
+  // Clean up resources
+  await cleanup();
+
+  // Return result
+  if (!status.success) {
+    console.error(`Process failed with code: ${status.code}`);
+  }
+
+  return { success: status.success, cp: childProcess };
+}
+
+/**
  * @description Git init the workspace
  * @param workspace 
  */

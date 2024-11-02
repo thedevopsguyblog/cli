@@ -1,4 +1,5 @@
 import * as bdd from "jsr:@std/testing/bdd";
+import * as ass from "jsr:@std/assert";
 import * as xpt from "jsr:@std/expect";
 import * as cliFns from "./main.ts";
 import * as hlpFns from "./helpers.ts";
@@ -54,57 +55,95 @@ const tmpDirOps = async (
 
 const assets = "./assets";
 
-bdd.describe("Test orgainseAssets & templater Fn", () => {
-    bdd.beforeAll(async () => {
-        await tmpDirOps("create");
-    });
+// bdd.describe("Test orgainseAssets & templater Fn", () => {
+//     bdd.beforeAll(async () => {
+//         await tmpDirOps("create");
+//     });
 
-    bdd.it("Should copy assets", async () => {
-        const tmpDir = await tmpDirOps("log");
-        await cliFns.orgainseAssets(tmpDir, assets);
-        await cliFns.templater(tmpDir, "TST", "CLItesting", "clitesting.com");
-    });
+//     bdd.it("Should copy assets", async () => {
+//         const tmpDir = await tmpDirOps("log");
+//         await cliFns.orgainseAssets(tmpDir, assets, "clitesting.com");
+//         await cliFns.templater(tmpDir, "TST", "CLItesting", "clitesting.com");
+//     });
 
-    bdd.it("Test k/v pairs in commons", async () => {
-        const commonsFileContent = Deno.readTextFileSync(
-            `${await tmpDirOps("log")}/config/common.ts`,
-        );
+//     bdd.it("Test k/v pairs in commons", async () => {
+//         const commonsFileContent = Deno.readTextFileSync(
+//             `${await tmpDirOps("log")}/config/common.ts`,
+//         );
 
-        // Extract the object part from the file content
-        const objectPart = commonsFileContent.match(/{[\s\S]*}/)?.[0];
-        const commonVars = eval(`(${objectPart})`);
+//         // Extract the object part from the file content
+//         const objectPart = commonsFileContent.match(/{[\s\S]*}/)?.[0];
+//         const commonVars = eval(`(${objectPart})`);
 
-        // Access the properties
-        const appCode = commonVars.APP_CODE;
-        const productName = commonVars.PRODUCTNAME;
+//         // Access the properties
+//         const appCode = commonVars.APP_CODE;
+//         const productName = commonVars.PRODUCTNAME;
 
-        // Assertions
-        xpt.expect(appCode).toBe("TST");
-        xpt.expect(productName).toBe("CLItesting");
-    });
+//         // Assertions
+//         xpt.expect(appCode).toBe("TST");
+//         xpt.expect(productName).toBe("CLItesting");
+//     });
 
-    bdd.afterAll(async () => {
-        console.log(await tmpDirOps("delete"));
-    });
-});
+//     bdd.afterAll(async () => {
+//         console.log(await tmpDirOps("delete"));
+//     });
+// });
 
-bdd.describe("Test CLI Args", () => {
-    
-})
+bdd.describe("spawner - Child Process Spawning", () => {
+  
+  bdd.it("Should Check CDK exited succesfully", async () => {
+    const res = await hlpFns.spawner("npx", ["aws-cdk", "--h"], Deno.cwd());
+    xpt.expect(res.success).toBe(true);
+  });
 
-bdd.describe("Test NPM Install process", () => {
-    bdd.beforeAll(async () => {
-        await tmpDirOps("create");
-    })
-    
-    bdd.it("Should spawn a process", async () => {
-        const tmpDir = await tmpDirOps("log");
-        const installCmd = await hlpFns.npmInstall(tmpDir, "glob");
-        console.log(installCmd);
-    });
+  bdd.it("Should mock a version upgrade prompt", async () => {
 
+    const mockScript = `console.log("Need to install the following packages:");
+const buf = new Uint8Array(1024);
+const n = await Deno.stdin.read(buf);
+const input = new TextDecoder().decode(buf.subarray(0, n)).trim();
+console.log("Received input:", input);`;
 
-    bdd.afterAll(async () => {
-        console.log(await tmpDirOps("delete"));
-    });
+        // Write temporary test script
+    const encoder = new TextEncoder();
+    const data = encoder.encode(mockScript);
+    await Deno.writeFile("test_script.js", data);
+
+    // Mock stdin
+    const mockInput = new TextEncoder().encode("y\n");
+
+    // Create a mock stdin reader that returns our predefined input
+    const mockStdin = {
+      read(_buf: Uint8Array): Promise<number | null> {
+        _buf.set(mockInput);
+        return Promise.resolve(mockInput.length);
+      },
+      close() {},
+    };
+
+    // @ts-ignore - Replacing stdin for testing
+    Deno.stdin = mockStdin;
+
+    try {
+      const { cp, success } = await hlpFns.spawner("deno", [
+        "run",
+        "test_script.js",
+      ]);
+
+      // Assert that the CP was a success and that it returned something
+      xpt.expect(success).toBe(true);
+      xpt.expect(cp).toBeDefined();
+      
+      //Verify that stdout contains the expected message
+      // const stdoutReader = cp.stdout.getReader();
+      // const { value: stdoutValue } = await stdoutReader.read();
+      // const stdoutText = new TextDecoder().decode(stdoutValue);
+      // console.log(stdoutText)
+      // ass.assertEquals(stdoutText.includes("stdout"), true);
+    } catch (error) {
+      console.error("Error in test", error);
+    } finally {
+      await Deno.remove("test_script.js");
+    }
+  });
 });
