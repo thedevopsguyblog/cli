@@ -323,6 +323,7 @@ async function init(options: IcliOptions) {
     await npmInstall(workspace)
     await cleanupSupportFiles(workspace, options.appCode);
     await gitInt(workspace);
+    await spawner('node', ["api/build.mjs"], workspace)
     successExitCli(workspace);
   } else {
     logger(`Error initializing the Next.js app\n Exiting Script.`, chalk.bgRed, 'construction');
