@@ -32,8 +32,9 @@ async function initCdk(workspace: string): Promise<{initCdkSuccess: boolean}> {
   if (success) {
     return {initCdkSuccess: true}
   } else {
-    logger(`Error:\n${cp.stderr}\n`, undefined, 'construction')
-    logger(`Error initializing the CDK.`, chalk.red, 'construction')
+    console.log('XXXX')
+    // logger(`Error:\n${(await cp.stderr.getReader().read()).value}\n`, undefined, 'construction')
+    logger(`Error spawning the CDK.`, chalk.red, 'construction')
     return {initCdkSuccess: false}
   }
 
@@ -69,7 +70,7 @@ async function initNextJs(workspace: string, EAD:string):Promise<{initNextJsSucc
 
   const command = new Deno.Command("npx", {
     args: [
-      "create-next-app@latest",
+      "create-next-app@14",
       "frontend",
       "-e",
       "https://github.com/nextui-org/next-app-template",
@@ -192,6 +193,7 @@ function updatePkgJson(workspace:string, appCode: string) {
       "aws-amplify": "^6.4.3",
       "aws-sdk-client-mock": "^4.0.1",
       "@aws-cdk/aws-amplify-alpha": "^2.147.1-alpha.0",
+      "@aws-cdk/aws-cognito-identitypool-alpha": "^2.165.0-alpha.0",
       "@aws-appsync/utils": "^1.8.0",
       "@aws-sdk/client-cognito-identity-provider": "^3.654.0",
       "@aws-sdk/client-dynamodb": "^3.602.0",
@@ -310,7 +312,7 @@ async function init(options: IcliOptions) {
       }
     }
   } else {
-    logger(`Error initializing the CDK.`, chalk.red, 'construction')
+    logger(`Error in 'initCdk()'`, chalk.red, 'construction')
     Deno.exit(1);
   }
 

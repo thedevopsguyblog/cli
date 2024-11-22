@@ -93,6 +93,7 @@ bdd.describe("spawner - Child Process Spawning", () => {
   
   bdd.it("Should Check CDK exited succesfully", async () => {
     const res = await hlpFns.spawner("npx", ["aws-cdk", "--h"], Deno.cwd());
+    console.log(res);
     xpt.expect(res.success).toBe(true);
   });
 

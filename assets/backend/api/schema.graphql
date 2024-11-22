@@ -1,0 +1,47 @@
+type Query {
+	getTodo(id: String!): Todo! @aws_cognito_user_pools
+	listTodos(limit: Int, nextToken: String): PaginatedTodos!
+		@aws_cognito_user_pools
+}
+
+type Mutation {
+	createTodo(input: CreateTodoInput!): Todo! @aws_cognito_user_pools
+	updateTodo(input: UpdateTodoInput!): Todo! @aws_cognito_user_pools
+	deleteTodo(id: String!): Todo! @aws_cognito_user_pools
+	toggleTodo(input: ToggleTodoInput!): Todo! @aws_cognito_user_pools
+}
+
+input CreateTodoInput {
+	title: String!
+	description: String!
+	isCompleted: Boolean!
+}
+
+input ToggleTodoInput {
+	id: String, 
+	isCompleted: Boolean
+}
+
+input UpdateTodoInput {
+	id: ID!
+	title: String!
+	description: String!
+	isCompleted: Boolean!
+	assignedTo: String
+}
+
+type Todo {
+	id: ID!
+	title: String!
+	description: String!
+	isCompleted: Boolean!
+	todoOwner: String!
+	createdAt: AWSDateTime!
+	updatedAt: AWSDateTime!
+	assignedTo: String
+}
+
+type PaginatedTodos {
+	todos: [Todo!]!
+	nextToken: String
+}

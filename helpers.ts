@@ -23,7 +23,7 @@ export async function spawner(
   args: string[],
   cwd: string = Deno.cwd()
 ): Promise<{ success: boolean; cp: Deno.ChildProcess }> {
-  
+
   const command = new Deno.Command(cmd, {
     args,
     cwd,
@@ -33,7 +33,7 @@ export async function spawner(
   });
 
   const childProcess = command.spawn();
-  
+
   // Create a cleanup function that properly handles stream cleanup
   const cleanup = async () => {
     const cleanupStream = async (stream: ReadableStream) => {
@@ -52,7 +52,7 @@ export async function spawner(
     await Promise.allSettled([
       cleanupStream(childProcess.stdout),
       cleanupStream(childProcess.stderr),
-      childProcess.stdin.close().catch(err => 
+      childProcess.stdin.close().catch(err =>
         console.error(`Error closing stdin: ${err}`)
       )
     ]);
@@ -120,8 +120,8 @@ export async function spawner(
  * @description Git init the workspace
  * @param workspace 
  */
-export async function gitInt(workspace:string): Promise<git.InitResult>{
-  const init = await git.simpleGit(workspace).init();  
+export async function gitInt(workspace: string): Promise<git.InitResult> {
+  const init = await git.simpleGit(workspace).init();
   return init;
 }
 
@@ -131,14 +131,14 @@ export async function gitInt(workspace:string): Promise<git.InitResult>{
  * @returns success:boolean
  * @todo Add user confirmation before deleting the workspace
  */
-export async function cleanDir(workspace: string): Promise<{success:boolean}>{
+export async function cleanDir(workspace: string): Promise<{ success: boolean }> {
   try {
     logger(`Removing the current CDK workspace`, undefined, 'file_cabinet');
     await Deno.removeSync(workspace, { recursive: true });
-    return {success: true};
+    return { success: true };
   } catch (error) {
     logger(`Error cleaning the workspace: ${error}`, chalk.bgYellow, 'warning');
-    return {success: false};
+    return { success: false };
   }
 }
 
@@ -148,8 +148,8 @@ export async function cleanDir(workspace: string): Promise<{success:boolean}>{
  * @param appcode 
  * @returns void
  */
-export function cleanupSupportFiles(workspace: string, appcode:string):Promise<void> {
-  
+export function cleanupSupportFiles(workspace: string, appcode: string): Promise<void> {
+
   const regEx = new RegExp(`^${appcode}-assets-[a-zA-Z0-9]+$`);
   const zip = new RegExp(`^${appcode}.zip$`);
 
@@ -172,9 +172,9 @@ export function cleanupSupportFiles(workspace: string, appcode:string):Promise<v
   logger(`Support files cleaned up`, chalk.green, 'file_cabinet');
   return Promise.resolve();
 
-}    
+}
 
-export async function cdkBin(workspace:string, ASSETS_SRC:string): Promise<{ initBinSetup: boolean }> {
+export async function cdkBin(workspace: string, ASSETS_SRC: string): Promise<{ initBinSetup: boolean }> {
 
   try {
     logger(`Setting up the bin directory...`, undefined, 'file_cabinet');
@@ -229,21 +229,21 @@ export async function checkNetworkAccess(): Promise<boolean> {
  * @param appcode
  * @returns success:boolean and ASSETS_TRG:string
  */
-export const ASSETS_SRC = async (workspace:string, appcode:string):Promise<{sucess:boolean, ASSETS_TRG:string}> => {
+export const ASSETS_SRC = async (workspace: string, appcode: string): Promise<{ sucess: boolean, ASSETS_TRG: string }> => {
   const ZIP = new URL(`https://github.com/thedevopsguyblog/cli/archive/refs/heads/main.zip`)
   let targetDir = ""
-  
-  const download = async ():Promise<{success:boolean, filepath:string|null}> => {
+
+  const download = async (): Promise<{ success: boolean, filepath: string | null }> => {
     try {
       const response = await fetch(ZIP.href);
       const buffer = new Uint8Array(await response.arrayBuffer());
       const tmpDir = `${workspace}/${appcode}.zip`;
       await Deno.writeFile(tmpDir, buffer);
       logger(`Downloaded the CLI assets to ${tmpDir}`, chalk.green, 'inbox_tray');
-      return {success: true, filepath: tmpDir}
+      return { success: true, filepath: tmpDir }
     } catch (error) {
       console.error(`Error downloading the CLI assets: ${error}`);
-      return {success: false, filepath: null}
+      return { success: false, filepath: null }
     }
   }
 
@@ -252,36 +252,36 @@ export const ASSETS_SRC = async (workspace:string, appcode:string):Promise<{suce
    * @param fp "file path" to the .zip file 
    * @returns success:boolean
    */
-  async function unzipAssets (fp:string, appcode:string): Promise<{success:boolean}> {
-    targetDir = Deno.makeTempDirSync({prefix: `${appcode}-assets-`, dir: workspace,});
+  async function unzipAssets(fp: string, appcode: string): Promise<{ success: boolean }> {
+    targetDir = Deno.makeTempDirSync({ prefix: `${appcode}-assets-`, dir: workspace, });
     logger(`Processing asset - ${fp}\n into ${targetDir}`, chalk.grey, 'memo');
 
-    try {  
+    try {
       // Extract the .zip file
       const dir = await unzipper.Open.file(fp);
-      await dir.extract({ path: targetDir });      
+      await dir.extract({ path: targetDir });
     } catch (error) {
       console.error(`Error unzipping file: ${error}`);
     }
 
     if (Deno.statSync(targetDir).isDirectory) {
-      return {success:true}
+      return { success: true }
     } else {
-      return {success:true}
+      return { success: true }
     }
   }
 
-  const {filepath, success} = await download();
+  const { filepath, success } = await download();
 
   if (filepath && success) {
-    const {success} = await unzipAssets(filepath, appcode);
+    const { success } = await unzipAssets(filepath, appcode);
     if (success) {
-      return {sucess:true, ASSETS_TRG: `${targetDir}/cli-main/assets`};
+      return { sucess: true, ASSETS_TRG: `${targetDir}/cli-main/assets` };
     } else {
-      return {sucess:false, ASSETS_TRG: ""};
+      return { sucess: false, ASSETS_TRG: "" };
     }
   } else {
-    return {sucess:false, ASSETS_TRG: ""};
+    return { sucess: false, ASSETS_TRG: "" };
   }
 
 }
@@ -411,7 +411,7 @@ export const logger = (
   console.info(`${emojiIcon} ${colorMsg}`);
 };
 
-export function showHelp():void {
+export function showHelp(): void {
   console.info(`
   Welcome to the "Work-U SaaS" or "wus" CLI
 
@@ -434,9 +434,9 @@ Source Code: https://github.com/thedevopsguyblog/cli
 `);
 }
 
-export const successExitCli = (targetDir:string) => {
+export const successExitCli = (targetDir: string) => {
   // new Deno.Command("node", {args:["api/build.mjs"], cwd: targetDir, stdin: "piped", stdout:"piped", stderr: "piped"}).spawn()
   logger(`All Done!.`, chalk.green, 'check_mark_button');
-  logger(`You can start building your Serverless (AppSync) +  NextJS 14 Saas!`,chalk.green, 'man_technologist');
+  logger(`You can start building your Serverless (AppSync) +  NextJS 14 Saas!`, chalk.green, 'man_technologist');
   Deno.exit(0);
 };
